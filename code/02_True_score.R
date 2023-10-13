@@ -1,7 +1,7 @@
 ##########################
 # TRUE AND OBSERVED SCORES
 ##########################
-# author: Giorgio Arcra
+# author: Giorgio Arcara
 # ver: 13/10/2023
 
 #################
@@ -22,7 +22,7 @@
 #########################
 T = 20 # true score
 E.sd = 10 # Error  (sd)
-n.obs = 10 # number of observation
+n.obs = 10 # number of observations
 
 # data simulation
 Xs = NULL
