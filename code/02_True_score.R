@@ -22,7 +22,7 @@
 #########################
 T = 20 # true score
 E.sd = 10 # Error  (sd)
-n.obs = 1 # number of observations
+n.obs = 30 # number of observations
 
 # data simulation
 Xs = NULL
@@ -33,3 +33,8 @@ for (iE in 1:n.obs){
 
 mean(Xs) # calculate mean of Observed scores
 hist(Xs) # histogram of observed scores
+
+# plot observed score as compared to true score
+plot(1:n.obs, Xs)
+lines(1:n.obs, Xs)
+abline(h=T)
