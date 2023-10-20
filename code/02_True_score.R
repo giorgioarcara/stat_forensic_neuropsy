@@ -21,8 +21,8 @@
 ## simulation paramters
 #########################
 T = 20 # true score
-E.sd = 10 # Error  (sd)
-n.obs = 30 # number of observations
+E.sd = 0.1 # Error  (sd)
+n.obs = 200 # number of observations
 
 # data simulation
 Xs = NULL
@@ -30,6 +30,8 @@ for (iE in 1:n.obs){
   E = rnorm(1, mean = 0, sd = E.sd)
   Xs[iE] = T + E
 }
+
+print(Xs)
 
 mean(Xs) # calculate mean of Observed scores
 hist(Xs) # histogram of observed scores
