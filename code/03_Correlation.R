@@ -15,6 +15,16 @@ print(r)
 r =  (sum((x - mean(x)) * (y - mean(y))) ) / ( (sqrt( sum((x - mean(x))^2))) * sqrt( sum((y - mean(y))^2)) )
 print(r)
 
+# Pearsons' correlation via z-scores
+Zx = scale(x) #( x - mean(x) ) / sd(x)
+Zy = scale(y) #( y - mean(y) ) / sd(y)
+
+n = length(x) # or length(y)
+
+r = sum(Zx*Zy) / (n-1)
+
+print(r)
+
 # Pearson's correlation, statistical test
 cor.test(x, y)
 
@@ -39,7 +49,6 @@ cor.test(res$X1, res$X2, method="spearman")
 cor.test(rank(res$X1), rank(res$X2))
 
 ## EFFECT OF OUTLIERS ON CORRELATION
-
 # in the lines below I create a duplicate of res and then I add an outliers
 # multiplying by 5 the largest value for X1 (see plot)
 res_out=res
@@ -48,7 +57,6 @@ res_out$X1[which(res_out$X1 == max(res_out$X1))] = res$X1[which(res_out$X1 == ma
 plot(res_out$X1, res_out$X2, pch=22)
 points(res$X1, res$X2, pch=1, cex=1.5)
 legend("bottomright", pch=c(1, 22), legend=c("original", "with outlier"))
-
 
 r_noout = cor.test(res$X1, res$X2)
 rho_noout = cor.test(res$X1, res$X2, method="spearman")
@@ -63,8 +71,6 @@ cat(paste("r without outliers=", round(r_noout$estimate, 2),
 "\nrho with an outlier", round(rho_out$estimate,2)))
 
 # note that Spearman's correlation is not affected by outliers.
-
-
 #####################################################################################
 # DATA SIMULATION. PEARSON'S CORRELATION OF SAMPLE, GIVEN KNOWN CORRELATION OF POPULATION
 #####################################################################################
