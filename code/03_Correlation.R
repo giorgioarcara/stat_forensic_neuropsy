@@ -7,12 +7,15 @@ n = 100
 x = rnorm(100, mean = 20, sd = 5)
 y = x + rnorm(n, mean=0, sd = 5) # you can simulate a  variable y correlated to x, by adding noise (N(0, sd)) to x. c
 
-# Pearson's correlation from covariance and standard deviation
-r = cov(x, y)/(sd(x)*sd(y))
-print(r)
+plot(x,y)
+
 
 # Pearson's correlation from full formula
 r =  (sum((x - mean(x)) * (y - mean(y))) ) / ( (sqrt( sum((x - mean(x))^2))) * sqrt( sum((y - mean(y))^2)) )
+print(r)
+
+# Pearson's correlation from covariance and standard deviation
+r = cov(x, y)/(sd(x)*sd(y))
 print(r)
 
 # Pearsons' correlation via z-scores
@@ -34,9 +37,9 @@ plot(x, y, main=paste("r = ", round(r, 2)))
 
 ## SIMULATE DATA WITH GIVEN CORRELATION
 # sim parameters
-n = 10 # number of observations from samples (note: n1 must be equal to n2)
+n = 50 # number of observations from samples (note: n1 must be equal to n2)
 mus=c(20,20) # mean of populations from which samples are drawn 
-t_r = 0.3 # true underlying correlation
+t_r = 0.6 # true underlying correlation
 # rnorm_multi (from faux package) simulate random observation from populations with given correlation
 res = rnorm_multi(n, mu=c(20, 20), r = t_r)
 
@@ -66,7 +69,7 @@ rho_out = cor.test(res_out$X1, res_out$X2, method="spearman")
 # the following lines show the results with r (Pearson) and rho (Spearman) correlations
 # with and without outliers
 cat(paste("r without outliers=", round(r_noout$estimate, 2), 
-"\nrho with outliers=", round(rho_noout$estimate,2),
+"\nrho without outliers=", round(rho_noout$estimate,2),
 "\nr with an outlier=", round(r_out$estimate, 2),
 "\nrho with an outlier", round(rho_out$estimate,2)))
 
@@ -76,7 +79,7 @@ cat(paste("r without outliers=", round(r_noout$estimate, 2),
 #####################################################################################
 
 n = 20
-n.rep = 20
+n.rep = 200
 t_r = 0.4
 
 Rs = NULL
