@@ -95,17 +95,19 @@ print(tests_fact_2)
 
 # typically to select the number of factors you use scree plot, selecting 
 # the first solution after a drop (in this case, 2 factors)
-scree(tests, pch=F)
+scree(tests, pc=F)
 
 # you can plot the loadings to better interpret the results
 loads = tests_fact_2$loadings
+loads
+
 plot(loads, type="n")
 text(loads,labels=names(tests),cex=.7)
 
 # you can also plot a diagram
 fa.diagram(loads)
 # NOTE that one default argument is simple = TRUE and only the highest loading on a factor is shown
-fa.diagram(loads, cut=.3, simple=F)
+fa.diagram(loads, cut=0.3, simple=F)
 
 
 # other hints can be found here https://rpubs.com/pjmurphy/758265
@@ -119,5 +121,8 @@ print(tests_fa_2)
 
 # results are similar but the algorithms used are different so they are not equal.
 
+## EXAMPLE PCA
+tests = prcomp(tests, scale=TRUE)
+print(tests$rotation)
 
 

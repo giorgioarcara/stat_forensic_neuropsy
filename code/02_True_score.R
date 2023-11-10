@@ -35,8 +35,8 @@ print(X)
 # the following lines show what 
 
 T = 20 # true score
-E.sd = 0.1 # Error  (sd)
-n.obs = 200 # number of observations
+E.sd = 1 # Error  (sd)
+n.obs = 40 # number of observations
 
 # data simulation
 Xs = NULL
@@ -54,6 +54,12 @@ mean(Xs)
 hist(Xs) 
 
 # plot observed scores as compared to True Score
-plot(1:n.obs, Xs)
+plot(1:n.obs, Xs, ylim=c(16,24))
 lines(1:n.obs, Xs)
 abline(h=T)
+
+png("Figure1.png", res=200, height=800, width=1200)
+plot(1:n.obs, Xs, ylim=c(16,24))
+lines(1:n.obs, Xs)
+abline(h=T)
+dev.off()

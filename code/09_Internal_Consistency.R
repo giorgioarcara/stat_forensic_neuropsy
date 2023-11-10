@@ -1,4 +1,5 @@
 library(readxl)
+library(psych)
 
 rm(list=ls())
 
@@ -19,10 +20,12 @@ tot = apply(items_bin, 1, sum)
 # calculate variance of the test
 s2_tot = var(tot)
 
+# calculate KR-20 for binary items
 KR20_items_bin = (n / (n-1)) * ( (s2_tot - sum(p*q)) / s2_tot)
 print(KR20_items_bin)
 
-# here I wrap up a function see also https://bookdown.org/sz_psyc490/r4psychometics/reliability.html
+# here I wrap up a function
+# it is the same as above, but with the function the code is handier
 KR20_fun <- function(items) {
   p = apply(items, 2, function(x){sum(x)/length(x)})
   q = 1-p
@@ -65,7 +68,10 @@ alpha_fun = function(items){
 
 alpha_fun(items)
 
+# compare with the alpha function from psych package
 alpha(items)
+
+
 ## NOTE: alpha is higher as the number of items increases
 alpha_res = alpha(items)
 print(alpha_res$total$raw_alpha) #alpha for all items
@@ -85,6 +91,5 @@ alpha_fun(items2) # alpha increases
 
 ## there are also other alternatives, like omega or GLB (gretaest lower bound)
 # Note that they are associated with factor analysis.
-
 omega(items) #
 glb(items)
