@@ -7,8 +7,8 @@ rm(list=ls())
 # e.g. simulators, for non-simulators, etc.
 
 ### Simulate data
-n_pat = 10 # number of Pathological individuals
-n_contr = 100000 # number of Healthy (Controls) individuals
+n_pat = 50 # number of Pathological individuals
+n_contr = 50 # number of Healthy (Controls) individuals
 
 # simulate group of group of Pathologicals
 pat_mean = 18

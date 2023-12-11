@@ -18,6 +18,19 @@ pbinom(cut_off_rand_success, prob=0.5, size = n_items)
 prop.test(cut_off_rand_success, n_items, p=0.5, corr=F)
 
 
+##
+# below I simulate what happens if I simulate k patients that are actually responding randomly
+k = 1000
+res = rbinom(k, n_items, prob=0.5)
+  
+hist(res, main="distribution of successes\n under random response of n_items")
+empirical_cut_off = quantile(res, prob=0.05)
+abline(v=empirical_cut_off, lwd=2)
+
+print(cut_off_rand_success)
+print(empirical_cut_off)
+
+
 
 
 
