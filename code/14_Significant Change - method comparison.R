@@ -7,7 +7,7 @@ source("R_functions/CGcut.off.bv.R")
 n.sim.train = 100
 
 # paramters for normative sample
-sim_prac = 0
+sim_prac = 2
 n_size = c(5, 10, 20, 50)
 corr = 0.5
 err = 1
