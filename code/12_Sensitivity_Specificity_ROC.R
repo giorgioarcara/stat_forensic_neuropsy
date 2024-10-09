@@ -119,7 +119,7 @@ threshold = coords(roc.dat, ret="threshold", x="best", best.method="topleft")
 n_pat_s = 200
 n_contr_s = 200
 
-k = 1000 # number of sample
+k = 1000 # number of samples
 
 pat_group = dat[dat$Group=="Pathological", ]
 contr_group = dat[dat$Group=="Healthy", ]

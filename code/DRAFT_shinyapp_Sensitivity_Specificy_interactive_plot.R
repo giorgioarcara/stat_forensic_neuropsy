@@ -6,7 +6,7 @@ rm(list=ls())
 
 #### GENERATE SAMPLE OF HEALHTY INDIVIDUALS
 zobs_1 = -1.64
-mu_1 <- 20
+mu_1 <- 5
 sigma_1 <- 5
 step_1 <- 1000
 
