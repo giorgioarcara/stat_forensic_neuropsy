@@ -4,7 +4,7 @@ library(MASS)
 source("R_functions/CGcut.off.bv.R")
 #source("R_functions/CGcut.off.bv_table.R")
 
-n.sim.train = 100
+n.sim.train = 100 # 100 is suboptimal, but is set to allow for simulations not requiring too much time.
 
 # paramters for normative sample
 sim_prac = 2
@@ -99,7 +99,7 @@ for (iN in 1:length(n_size)){
 }
 
 #save(MODEL_RES, file="MODEL_RES_pract.RData")
-print(MODEL_RES) # expected is 5%, for each combination
+print(MODEL_RES) # Type 1 ERROR: expected is 5%, for each combination
 
 
 

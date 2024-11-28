@@ -44,9 +44,9 @@ hist(yrand, main="Population histogram\n(10000 observations)")
 
 
 # we can simulate samples and see what are the observed cut-offs
-n = 5 # size of sample (number of participants in my normative data)
-k = 10000 # number of samples to simulate
-p = 10000 # number of simulated tested participants from normal population
+n = 100 # size of sample (number of participants in my normative data)
+k = 1000 # number of samples to simulate
+p = 1000 # number of simulated tested participants from normal population
 
 # for each sample I test p participants, if my method is accurate, I will classify them
 # below the cut-off 5% of the time (by definition, this is my definition). The sample cut-off will be different, however,

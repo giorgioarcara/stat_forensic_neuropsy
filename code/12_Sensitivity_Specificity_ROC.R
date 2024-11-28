@@ -116,8 +116,8 @@ threshold = coords(roc.dat, ret="threshold", x="best", best.method="topleft")
 
 
 # from this sample some participants (for sake of simplicity equal number)
-n_pat_s = 200
-n_contr_s = 200
+n_pat_s = 100
+n_contr_s = 100
 
 k = 1000 # number of samples
 

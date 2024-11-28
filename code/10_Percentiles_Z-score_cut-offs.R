@@ -1,12 +1,14 @@
 rm(list=ls())
 
 # simulate normative data with normal distribution
-n = 100
+n = 1000
 m = 20
 s = 5
 
 xs = rnorm(n = n, mean = m, sd = s)
 
+mean(xs)
+sd(xs)
 
 hist(xs, breaks=10)
 
@@ -30,7 +32,7 @@ print(cut_off_z)
 hist(xs, main = paste("difference in cut-off 5% = ", round(cut_off_z - cut_off_perc,2), sep=""))
 abline(v = cut_off_z, lwd=3, col="red") # z score in red
 abline(v = cut_off_perc, lwd=3, col="blue") # non-parametric percentile in blue
-
+legend("topright", legend=c("z-score", "percentile"), col=c("red", "blue"), lwd=2)
 
 #### non normal distribution
 # beta distribution can be used to build data that are non normally distributed
@@ -48,6 +50,7 @@ print(cut_off_z)
 hist(xs, main = paste("difference in cut-off 5% = ", round(cut_off_z - cut_off_perc,2), sep=""))
 abline(v = cut_off_z, lwd=3, col="red") # z score in red
 abline(v = cut_off_perc, lwd=3, col="blue") # non-parametric percentile in blue
+legend("topright", legend=c("z-score", "percentile"), col=c("red", "blue"), lwd=2)
 
 ###################################
 ## POPULATION AND SAMPLE THRESHOLDS
@@ -59,7 +62,7 @@ real_cut_off = pop_mean - 1.64 * pop_sd
 print(real_cut_off)
 
 # we can simulate samples and see what are the observed cut-offs
-n = 100 # size of each sample (number of participants in my normative data)
+n = 10 # size of each sample (number of participants in my normative data)
 k = 500 # number of simulated samples
 
 
@@ -70,7 +73,7 @@ for (iK in 1:k){
   samp_cut_offs[iK] = cut_off_obs
 }
 
-hist(samp_cut_offs, main= paste("distribution of sample cut-offs\n real cut-off=",real_cut_off, sep=""))
+hist(samp_cut_offs, main= paste("distribution of sample cut-offs\n real cut-off=",real_cut_off, sep=""), col="red")
 
 ### IMPORTANT: we cannot trust cut-offs or thresholds from samples!
 # (especially when sample size is low)
@@ -86,7 +89,7 @@ pop_sd = 10
 real_cut_off = pop_mean - 1.64 * pop_sd
 
 # we can simulate samples and see what are the observed cut-offs
-n = 20 # size of each sample (number of participants in my normative data)
+n = 100 # size of each sample (number of participants in my normative data)
 k = 1000 # number of simulated samples
 p = 1000 # number of simulated tested participants from normal population
 
@@ -131,7 +134,7 @@ pop_sd = 10
 real_cut_off = pop_mean - 1.64 * pop_sd
 
 # we can simulate samples and see what are the observed cut-offs
-n = 200 #size of each sample (number of participants in my normative data)
+n = 20  #size of each sample (number of participants in my normative data)
 k = 1000 # number of simulated samples
 p = 1000 # number of simulateted tested participants from normal population
 

@@ -10,6 +10,7 @@ rm(list=ls())
 n_items = 50
 cut_off_rand_success = qbinom(p = 0.05, prob=0.5, size = n_items)
 
+print(cut_off_rand_success)
 
 # probability to obtain lesss thatn cut_off_rand_success in n_items
 pbinom(cut_off_rand_success, prob=0.5, size = n_items)
@@ -31,6 +32,7 @@ print(cut_off_rand_success)
 print(empirical_cut_off)
 
 
-
+# for other details on Sensitivity/Specificity, PPV and NPV for Simulations see code 12 and 12a.
+# (the same considerations to detect patients from controls apply also to detect simulators from non-simulators)
 
 
