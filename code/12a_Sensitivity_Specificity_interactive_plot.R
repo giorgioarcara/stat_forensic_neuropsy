@@ -16,7 +16,7 @@ pat_mean=20
 pat_sd = 2
 
 n_contr = 50
-contr_mean = 25
+contr_mean = 24
 contr_sd = 2
 
 

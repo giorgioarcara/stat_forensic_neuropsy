@@ -1,6 +1,5 @@
-# Stastical Methods in Forensic Neuropsychology
-This repo contains materials (slides and code) for the course on statistical methods in forensic neuropsychology (currently AA 2023/2024 and 2024/2025)
-
-
+# Metodi statistici per la neuropsicologia forense
+Questa repository contiene i materiali per il corso Metodi Statistici per La Neuropsicologia Forense
+(Corso di Laurea in Psicologia Giuridica e Criminologia Forense, Unipd-IMT Lucca)
 
 Author: Giorgio Arcara

@@ -1,0 +1,227 @@
+library(shiny)
+library(pROC)
+
+ui <- fluidPage(
+  titlePanel("Sensitivity, Specificity, and ROC Explorer"),
+  sidebarLayout(
+    sidebarPanel(
+      numericInput("pat_n", "Number of Pathological", value = 50, min = 1),
+      numericInput("healthy_n", "Number of Healthy", value = 50, min = 1),
+      numericInput("pat_mean", "Pathological Mean", value = 20),
+      numericInput("pat_sd", "Pathological SD", value = 2),
+      numericInput("healthy_mean", "Healthy Mean", value = 24),
+      numericInput("healthy_sd", "Healthy SD", value = 2),
+      sliderInput("cutoff", "Cutoff Threshold", min = 0, max = 40, value = 15, step = 0.1),
+      actionButton("regenerate", "Regenerate Data"),
+      actionButton("setOptimal", "Set Optimal Threshold (Youden Index)")
+    ),
+    mainPanel(
+      tabsetPanel(id = "tabs",
+                  tabPanel("Simulated Data",
+                           plotOutput("histPlot"),
+                           verbatimTextOutput("metricsText")
+                  ),
+                  tabPanel("Density View",
+                           plotOutput("densityPlot", height = "500px"),
+                           fluidRow(
+                             column(3, strong("Sensitivity:"), textOutput("sensitivity")),
+                             column(3, strong("Specificity:"), textOutput("specificity")),
+                             column(3, strong("Accuracy:"), textOutput("accuracy")),
+                             column(3, strong("AUC:"), textOutput("auc"))
+                           ),
+                           fluidRow(
+                             column(3, strong("True Positives:"), textOutput("TP")),
+                             column(3, strong("False Negatives:"), textOutput("FN")),
+                             column(3, strong("False Positives:"), textOutput("FP")),
+                             column(3, strong("True Negatives:"), textOutput("TN"))
+                           ),
+                           hr(),
+                           h4("What Do the Colors Mean?"),
+                           tags$ul(
+                             tags$li(strong("True Positive (Green):"), " Pathological subject correctly classified (score < cutoff)"),
+                             tags$li(strong("False Negative (Red):"), " Pathological subject incorrectly classified as Healthy (score ≥ cutoff)"),
+                             tags$li(strong("False Positive (Orange):"), " Healthy subject incorrectly classified as Pathological (score < cutoff)"),
+                             tags$li(strong("True Negative (Blue):"), " Healthy subject correctly classified (score ≥ cutoff)")
+                           )
+                  )
+      )
+    )
+  )
+)
+
+server <- function(input, output, session) {
+  n <- 50
+  
+  data <- reactiveVal()
+  
+  generateData <- function() {
+    pat_n <- input$pat_n
+    healthy_n <- input$healthy_n
+    
+    pat <- rnorm(pat_n, mean = input$pat_mean, sd = input$pat_sd)
+    healthy <- rnorm(healthy_n, mean = input$healthy_mean, sd = input$healthy_sd)
+    
+    dat <- data.frame(
+      Score = c(pat, healthy),
+      Group = factor(c(rep("Pathological", pat_n), rep("Healthy", healthy_n)))
+    )
+    data(dat)
+  }
+  
+  observeEvent(input$regenerate, {
+    generateData()
+  })
+  
+  observe({
+    generateData()
+  })
+  
+  rocData <- reactive({
+    dat <- data()
+    roc(dat$Group, dat$Score, ci = TRUE, percent = FALSE, direction = ">")
+  })
+  
+  output$histPlot <- renderPlot({
+    req(data())
+    dat <- data()
+    threshold <- input$cutoff
+    roc_obj <- rocData()
+    
+    TP <- sum(dat$Score[dat$Group == "Pathological"] < threshold)
+    TN <- sum(dat$Score[dat$Group == "Healthy"] >= threshold)
+    FP <- sum(dat$Score[dat$Group == "Healthy"] < threshold)
+    FN <- sum(dat$Score[dat$Group == "Pathological"] >= threshold)
+    
+    Sensitivity <- TP / (TP + FN)
+    Specificity <- TN / (TN + FP)
+    Accuracy <- (TP + TN) / (TP + TN + FP + FN)
+    
+    h1 <- hist(dat$Score[dat$Group == "Pathological"], plot = FALSE)
+    h2 <- hist(dat$Score[dat$Group == "Healthy"], plot = FALSE)
+    
+    x_range <- range(c(h1$breaks, h2$breaks))
+    y_range <- range(c(h1$counts, h2$counts))
+    
+    hist(dat$Score[dat$Group == "Pathological"], col = rgb(0, 0, 0, 0.5),
+         xlim = x_range, ylim = y_range, breaks = 10,
+         xlab = "Score", main = paste0("Specificity = ", round(Specificity,2),
+                                       ", Sensitivity = ", round(Sensitivity,2),
+                                       "\nAUC = ", round(roc_obj$auc, 2)))
+    par(new = TRUE)
+    hist(dat$Score[dat$Group == "Healthy"], col = rgb(0.3, 0.4, 0.8, 0.3),
+         breaks = 10, xlim = x_range, ylim = y_range,
+         xlab = "", ylab = "", main = "")
+    abline(v = threshold, lwd = 2, col = "red")
+    legend("topright", legend = c("Pathological", "Healthy"), fill = c("black", rgb(0.3, 0.4, 0.8, 0.5)))
+  })
+  
+  output$metricsText <- renderPrint({
+    dat <- data()
+    threshold <- input$cutoff
+    
+    TP <- sum(dat$Score[dat$Group == "Pathological"] < threshold)
+    TN <- sum(dat$Score[dat$Group == "Healthy"] >= threshold)
+    FP <- sum(dat$Score[dat$Group == "Healthy"] < threshold)
+    FN <- sum(dat$Score[dat$Group == "Pathological"] >= threshold)
+    
+    Sensitivity <- TP / (TP + FN)
+    Specificity <- TN / (TN + FP)
+    Accuracy <- (TP + TN) / (TP + TN + FP + FN)
+    
+    cat("Sensitivity:", round(Sensitivity, 3), "\n")
+    cat("Specificity:", round(Specificity, 3), "\n")
+    cat("Accuracy:", round(Accuracy, 3), "\n")
+    cat("TP:", TP, "FP:", FP, "TN:", TN, "FN:", FN, "\n")
+    cat("AUC:", round(rocData()$auc, 3), "\n")
+  })
+  
+  output$densityPlot <- renderPlot({
+    threshold <- input$cutoff
+    mean_pat <- input$pat_mean
+    sd_pat <- input$pat_sd
+    mean_healthy <- input$healthy_mean
+    sd_healthy <- input$healthy_sd
+    
+    x_vals <- seq(0, 40, by = 0.1)
+    d_pat <- dnorm(x_vals, mean = mean_pat, sd = sd_pat)
+    d_healthy <- dnorm(x_vals, mean = mean_healthy, sd = sd_healthy)
+    
+    sens <- pnorm(threshold, mean = mean_pat, sd = sd_pat)
+    spec <- 1 - pnorm(threshold, mean = mean_healthy, sd = sd_healthy)
+    accuracy <- (sens + spec) / 2
+    auc <- pnorm((mean_healthy - mean_pat) / sqrt(sd_pat^2 + sd_healthy^2))
+    
+    plot(x_vals, d_pat, type = "n", ylim = c(0, max(c(d_pat, d_healthy)) * 1.1),
+         xlab = "Score", ylab = "Density",
+         main = paste0("Specificity = ", round(spec, 2),
+                       ", Sensitivity = ", round(sens, 2),
+                       "\nAUC = ", round(auc, 2)))
+    
+    polygon(c(x_vals[x_vals < threshold], rev(x_vals[x_vals < threshold])),
+            c(d_pat[x_vals < threshold], rep(0, sum(x_vals < threshold))),
+            col = rgb(0, 0.7, 0, 0.4), border = NA)  # TP
+    polygon(c(x_vals[x_vals >= threshold], rev(x_vals[x_vals >= threshold])),
+            c(d_pat[x_vals >= threshold], rep(0, sum(x_vals >= threshold))),
+            col = rgb(1, 0, 0, 0.4), border = NA)  # FN
+    polygon(c(x_vals[x_vals < threshold], rev(x_vals[x_vals < threshold])),
+            c(d_healthy[x_vals < threshold], rep(0, sum(x_vals < threshold))),
+            col = rgb(1, 0.5, 0, 0.4), border = NA)  # FP
+    polygon(c(x_vals[x_vals >= threshold], rev(x_vals[x_vals >= threshold])),
+            c(d_healthy[x_vals >= threshold], rep(0, sum(x_vals >= threshold))),
+            col = rgb(0, 0, 1, 0.4), border = NA)  # TN
+    
+    lines(x_vals, d_pat, col = "black", lwd = 2)
+    lines(x_vals, d_healthy, col = "blue", lwd = 2)
+    abline(v = threshold, lwd = 2, lty = 2)
+  })
+  
+  # Theoretical metric outputs
+  output$sensitivity <- renderText({
+    round(pnorm(input$cutoff, mean = input$pat_mean, sd = input$pat_sd), 3)
+  })
+  output$specificity <- renderText({
+    round(1 - pnorm(input$cutoff, mean = input$healthy_mean, sd = input$healthy_sd), 3)
+  })
+  output$accuracy <- renderText({
+    s <- pnorm(input$cutoff, input$pat_mean, input$pat_sd)
+    sp <- 1 - pnorm(input$cutoff, input$healthy_mean, input$healthy_sd)
+    round((s + sp) / 2, 3)
+  })
+  output$auc <- renderText({
+    d <- sqrt(input$pat_sd^2 + input$healthy_sd^2)
+    auc <- pnorm((input$healthy_mean - input$pat_mean) / d)
+    round(auc, 3)
+  })
+  
+  output$TP <- renderText({
+    round(pnorm(input$cutoff, input$pat_mean, input$pat_sd), 3)
+  })
+  output$FN <- renderText({
+    round(1 - pnorm(input$cutoff, input$pat_mean, input$pat_sd), 3)
+  })
+  output$FP <- renderText({
+    round(pnorm(input$cutoff, input$healthy_mean, input$healthy_sd), 3)
+  })
+  output$TN <- renderText({
+    round(1 - pnorm(input$cutoff, input$healthy_mean, input$healthy_sd), 3)
+  })
+  
+  observeEvent(input$setOptimal, {
+    tab <- input$tabs
+    if (tab == "Simulated Data") {
+      threshold <- as.numeric(coords(rocData(), "best", ret = "threshold", best.method = "youden"))
+    } else {
+      thresholds <- seq(0, 40, by = 0.1)
+      youden <- sapply(thresholds, function(t) {
+        sens <- pnorm(t, mean = input$pat_mean, sd = input$pat_sd)
+        spec <- 1 - pnorm(t, mean = input$healthy_mean, sd = input$healthy_sd)
+        sens + spec - 1
+      })
+      threshold <- thresholds[which.max(youden)]
+    }
+    updateSliderInput(session, "cutoff", value = round(threshold, 2))
+  })
+  
+}
+
+shinyApp(ui, server)

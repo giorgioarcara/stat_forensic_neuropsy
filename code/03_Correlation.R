@@ -37,7 +37,7 @@ plot(x, y, main=paste("r = ", round(r, 2)))
 
 ## SIMULATE DATA WITH GIVEN CORRELATION
 # sim parameters
-n = 50 # number of observations from samples (note: n1 must be equal to n2)
+n = 500 # number of observations from samples (note: n1 must be equal to n2)
 mus=c(20,20) # mean of populations from which samples are drawn 
 t_r = 0.6 # true underlying correlation
 # rnorm_multi (from faux package) simulate random observation from populations with given correlation
