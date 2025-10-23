@@ -20,46 +20,20 @@
 #############################################################
 ## SIMULATE A SINGLE OBSERVED SCORE GIVEN A KNOWN TRUE SCORE
 #############################################################
-T = 20 # true score
-E.sd = 0.1 # Error (sd)
+Ts = 37 # true score
+E.sd = 0.5 # Error (sd)
 
 E = rnorm(1, mean=0, sd = E.sd)
 
-X = T + E
+X = Ts + E
 
 print(X)
 
 #############################################################
 ## SIMULATE MULTIPLE OBSERVED SCORE WITH A GIVEN TRUE SCORE
 #############################################################
-# the following lines show what 
+source("R_functions/simulate_obs.R")
 
-T = 20 # true score
-E.sd = 1 # Error  (sd)
-n.obs = 40 # number of observations
+simulate_obs(Ts=37, n.obs = 30, Mean.T=40, E.sd=1.5, Mean.E.sd=5, label="High Reliability")
+simulate_obs(Ts=37, n.obs = 30, Mean.T=40, E.sd=4, Mean.E.sd=5, label="Low Reliability", plot_thresh = T)
 
-# data simulation
-Xs = NULL
-for (iE in 1:n.obs){
-  E = rnorm(1, mean = 0, sd = E.sd)
-  Xs[iE] = T + E
-}
-
-print(Xs)
-
-# calculate mean of observed scores (the larger the number of repeated measurement, the better the approximation to the True score)
-mean(Xs) 
-
-# histogram of observed scores
-hist(Xs) 
-
-# plot observed scores as compared to True Score
-plot(1:n.obs, Xs, ylim=c(16,24))
-lines(1:n.obs, Xs)
-abline(h=T)
-
-png("Figure1.png", res=200, height=800, width=1200)
-plot(1:n.obs, Xs, ylim=c(16,24))
-lines(1:n.obs, Xs)
-abline(h=T)
-dev.off()
