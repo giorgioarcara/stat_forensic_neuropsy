@@ -8,8 +8,8 @@ rm(list=ls())
 
 # In the example below 
 
-N = 10 # number of panelist
-Ne = 5 # number of panelist that rated an Item as "essential" ()
+N = 10 # total number of panelists
+Ne = 1 # number of panelists that rated an Item as "essential" ()
 
 
 CVR = (Ne - N/2) / (N/2)
@@ -29,7 +29,7 @@ CVRs = (Nes - N/2) / (N/2)
 print(CVRs)
 
 # select according to Lawshe (1975). see paper or slides for table reference to select the correct threshold
-threshold = 0.99
+threshold = 0.78
 CVRs_sel = CVRs[CVRs>threshold]
 # adjust all CVR to 0.99 (this is acccording to Lawshe suggestion)
 CVRs_sel[CVRs_sel==1]=0.99
