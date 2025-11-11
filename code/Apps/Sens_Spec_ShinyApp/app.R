@@ -12,6 +12,9 @@ ui <- fluidPage(
       numericInput("healthy_mean", "Healthy Mean", value = 24),
       numericInput("healthy_sd", "Healthy SD", value = 2),
       sliderInput("cutoff", "Cutoff Threshold", min = 0, max = 40, value = 15, step = 0.1),
+      radioButtons("show_pathological", "Show Pathological Distribution", 
+                   choices = c("Yes" = TRUE, "No" = FALSE), 
+                   selected = TRUE, inline = TRUE),
       actionButton("regenerate", "Regenerate Data"),
       actionButton("setOptimal", "Set Optimal Threshold (Youden Index)")
     ),
@@ -70,7 +73,7 @@ ui <- fluidPage(
 )
 
 server <- function(input, output, session) {
-  n <- 50
+  n <- 50  
   
   data <- reactiveVal()
   
@@ -122,17 +125,38 @@ server <- function(input, output, session) {
     x_range <- range(c(h1$breaks, h2$breaks))
     y_range <- range(c(h1$counts, h2$counts))
     
-    hist(dat$Score[dat$Group == "Pathological"], col = rgb(0, 0, 0, 0.5),
-         xlim = x_range, ylim = y_range, breaks = 10,
-         xlab = "Score", main = paste0("Specificity = ", round(Specificity,2),
-                                       ", Sensitivity = ", round(Sensitivity,2),
-                                       "\nAUC = ", round(roc_obj$auc, 2)))
-    par(new = TRUE)
-    hist(dat$Score[dat$Group == "Healthy"], col = rgb(0.3, 0.4, 0.8, 0.3),
-         breaks = 10, xlim = x_range, ylim = y_range,
-         xlab = "", ylab = "", main = "")
+    # Start with healthy if pathological is hidden
+    if (as.logical(input$show_pathological)) {
+      hist(dat$Score[dat$Group == "Pathological"], col = rgb(0, 0, 0, 0.5),
+           xlim = x_range, ylim = y_range, breaks = 10,
+           xlab = "Score", main = paste0("Specificity = ", round(Specificity,2),
+                                         ", Sensitivity = ", round(Sensitivity,2),
+                                         "\nAUC = ", round(roc_obj$auc, 2)))
+      par(new = TRUE)
+      hist(dat$Score[dat$Group == "Healthy"], col = rgb(0.3, 0.4, 0.8, 0.3),
+           breaks = 10, xlim = x_range, ylim = y_range,
+           xlab = "", ylab = "", main = "")
+    } else {
+      hist(dat$Score[dat$Group == "Healthy"], col = rgb(0.3, 0.4, 0.8, 0.5),
+           xlim = x_range, ylim = y_range, breaks = 10,
+           xlab = "Score", main = paste0("Specificity = ", round(Specificity,2),
+                                         ", Sensitivity = ", round(Sensitivity,2),
+                                         "\nAUC = ", round(roc_obj$auc, 2)))
+    }
+    
     abline(v = threshold, lwd = 2, col = "red")
-    legend("topright", legend = c("Pathological", "Healthy"), fill = c("black", rgb(0.3, 0.4, 0.8, 0.5)))
+    
+    legend_labels <- if (as.logical(input$show_pathological)) {
+      c("Pathological", "Healthy")
+    } else {
+      "Healthy"
+    }
+    legend_fills <- if (as.logical(input$show_pathological)) {
+      c("black", rgb(0.3, 0.4, 0.8, 0.5))
+    } else {
+      rgb(0.3, 0.4, 0.8, 0.5)
+    }
+    legend("topright", legend = legend_labels, fill = legend_fills)
   })
   
   # Simulated Data panel outputs (proportions, matching Density View)
@@ -257,12 +281,15 @@ server <- function(input, output, session) {
                        ", Sensitivity = ", round(sens, 2),
                        "\nAUC = ", round(auc, 2)))
     
-    polygon(c(x_vals[x_vals < threshold], rev(x_vals[x_vals < threshold])),
-            c(d_pat[x_vals < threshold], rep(0, sum(x_vals < threshold))),
-            col = rgb(0, 0.7, 0, 0.4), border = NA)  # TP
-    polygon(c(x_vals[x_vals >= threshold], rev(x_vals[x_vals >= threshold])),
-            c(d_pat[x_vals >= threshold], rep(0, sum(x_vals >= threshold))),
-            col = rgb(1, 0, 0, 0.4), border = NA)  # FN
+    if (as.logical(input$show_pathological)) {
+      polygon(c(x_vals[x_vals < threshold], rev(x_vals[x_vals < threshold])),
+              c(d_pat[x_vals < threshold], rep(0, sum(x_vals < threshold))),
+              col = rgb(0, 0.7, 0, 0.4), border = NA)  # TP
+      polygon(c(x_vals[x_vals >= threshold], rev(x_vals[x_vals >= threshold])),
+              c(d_pat[x_vals >= threshold], rep(0, sum(x_vals >= threshold))),
+              col = rgb(1, 0, 0, 0.4), border = NA)  # FN
+    }
+    
     polygon(c(x_vals[x_vals < threshold], rev(x_vals[x_vals < threshold])),
             c(d_healthy[x_vals < threshold], rep(0, sum(x_vals < threshold))),
             col = rgb(1, 0.5, 0, 0.4), border = NA)  # FP
@@ -270,7 +297,9 @@ server <- function(input, output, session) {
             c(d_healthy[x_vals >= threshold], rep(0, sum(x_vals >= threshold))),
             col = rgb(0, 0, 1, 0.4), border = NA)  # TN
     
-    lines(x_vals, d_pat, col = "black", lwd = 2)
+    if (as.logical(input$show_pathological)) {
+      lines(x_vals, d_pat, col = "black", lwd = 2)
+    }
     lines(x_vals, d_healthy, col = "blue", lwd = 2)
     abline(v = threshold, lwd = 2, lty = 2)
   })
