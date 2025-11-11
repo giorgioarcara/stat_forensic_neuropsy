@@ -19,7 +19,27 @@ ui <- fluidPage(
       tabsetPanel(id = "tabs",
                   tabPanel("Simulated Data",
                            plotOutput("histPlot"),
-                           verbatimTextOutput("metricsText")
+                           h4("Proportions"),
+                           fluidRow(
+                             column(3, strong("Sensitivity:"), textOutput("sensitivity_sim")),
+                             column(3, strong("Specificity:"), textOutput("specificity_sim")),
+                             column(3, strong("Accuracy:"), textOutput("accuracy_sim")),
+                             column(3, strong("AUC:"), textOutput("auc_sim"))
+                           ),
+                           fluidRow(
+                             column(3, strong("True Positives:"), textOutput("TP_sim")),
+                             column(3, strong("False Negatives:"), textOutput("FN_sim")),
+                             column(3, strong("False Positives:"), textOutput("FP_sim")),
+                             column(3, strong("True Negatives:"), textOutput("TN_sim"))
+                           ),
+                           hr(),
+                           h4("Raw Counts"),
+                           fluidRow(
+                             column(3, strong("True Positives:"), textOutput("TP_count")),
+                             column(3, strong("False Negatives:"), textOutput("FN_count")),
+                             column(3, strong("False Positives:"), textOutput("FP_count")),
+                             column(3, strong("True Negatives:"), textOutput("TN_count"))
+                           )
                   ),
                   tabPanel("Density View",
                            plotOutput("densityPlot", height = "500px"),
@@ -115,24 +135,104 @@ server <- function(input, output, session) {
     legend("topright", legend = c("Pathological", "Healthy"), fill = c("black", rgb(0.3, 0.4, 0.8, 0.5)))
   })
   
-  output$metricsText <- renderPrint({
+  # Simulated Data panel outputs (proportions, matching Density View)
+  output$sensitivity_sim <- renderText({
+    req(data())
     dat <- data()
     threshold <- input$cutoff
-    
+    TP <- sum(dat$Score[dat$Group == "Pathological"] < threshold)
+    FN <- sum(dat$Score[dat$Group == "Pathological"] >= threshold)
+    round(TP / (TP + FN), 3)
+  })
+  
+  output$specificity_sim <- renderText({
+    req(data())
+    dat <- data()
+    threshold <- input$cutoff
+    TN <- sum(dat$Score[dat$Group == "Healthy"] >= threshold)
+    FP <- sum(dat$Score[dat$Group == "Healthy"] < threshold)
+    round(TN / (TN + FP), 3)
+  })
+  
+  output$accuracy_sim <- renderText({
+    req(data())
+    dat <- data()
+    threshold <- input$cutoff
     TP <- sum(dat$Score[dat$Group == "Pathological"] < threshold)
     TN <- sum(dat$Score[dat$Group == "Healthy"] >= threshold)
     FP <- sum(dat$Score[dat$Group == "Healthy"] < threshold)
     FN <- sum(dat$Score[dat$Group == "Pathological"] >= threshold)
-    
-    Sensitivity <- TP / (TP + FN)
-    Specificity <- TN / (TN + FP)
-    Accuracy <- (TP + TN) / (TP + TN + FP + FN)
-    
-    cat("Sensitivity:", round(Sensitivity, 3), "\n")
-    cat("Specificity:", round(Specificity, 3), "\n")
-    cat("Accuracy:", round(Accuracy, 3), "\n")
-    cat("TP:", TP, "FP:", FP, "TN:", TN, "FN:", FN, "\n")
-    cat("AUC:", round(rocData()$auc, 3), "\n")
+    round((TP + TN) / (TP + TN + FP + FN), 3)
+  })
+  
+  output$auc_sim <- renderText({
+    req(data())
+    round(rocData()$auc, 3)
+  })
+  
+  output$TP_sim <- renderText({
+    req(data())
+    dat <- data()
+    threshold <- input$cutoff
+    TP <- sum(dat$Score[dat$Group == "Pathological"] < threshold)
+    total_pat <- sum(dat$Group == "Pathological")
+    round(TP / total_pat, 3)
+  })
+  
+  output$FN_sim <- renderText({
+    req(data())
+    dat <- data()
+    threshold <- input$cutoff
+    FN <- sum(dat$Score[dat$Group == "Pathological"] >= threshold)
+    total_pat <- sum(dat$Group == "Pathological")
+    round(FN / total_pat, 3)
+  })
+  
+  output$FP_sim <- renderText({
+    req(data())
+    dat <- data()
+    threshold <- input$cutoff
+    FP <- sum(dat$Score[dat$Group == "Healthy"] < threshold)
+    total_healthy <- sum(dat$Group == "Healthy")
+    round(FP / total_healthy, 3)
+  })
+  
+  output$TN_sim <- renderText({
+    req(data())
+    dat <- data()
+    threshold <- input$cutoff
+    TN <- sum(dat$Score[dat$Group == "Healthy"] >= threshold)
+    total_healthy <- sum(dat$Group == "Healthy")
+    round(TN / total_healthy, 3)
+  })
+  
+  # Raw count outputs for Simulated Data panel
+  output$TP_count <- renderText({
+    req(data())
+    dat <- data()
+    threshold <- input$cutoff
+    sum(dat$Score[dat$Group == "Pathological"] < threshold)
+  })
+  
+  output$FN_count <- renderText({
+    req(data())
+    dat <- data()
+    threshold <- input$cutoff
+    sum(dat$Score[dat$Group == "Pathological"] >= threshold)
+  })
+  
+  output$FP_count <- renderText({
+    req(data())
+    dat <- data()
+    threshold <- input$cutoff
+    sum(dat$Score[dat$Group == "Healthy"] < threshold)
+  })
+  
+  output$TN_count <- renderText({
+    req(data())
+    dat <- data()
+    threshold <- input$cutoff
+    sum(dat$Score[dat$Group == "Healthy"] >= threshold)
   })
   
   output$densityPlot <- renderPlot({
@@ -175,7 +275,7 @@ server <- function(input, output, session) {
     abline(v = threshold, lwd = 2, lty = 2)
   })
   
-  # Theoretical metric outputs
+  # Theoretical metric outputs (Density View panel)
   output$sensitivity <- renderText({
     round(pnorm(input$cutoff, mean = input$pat_mean, sd = input$pat_sd), 3)
   })
@@ -221,7 +321,6 @@ server <- function(input, output, session) {
     }
     updateSliderInput(session, "cutoff", value = round(threshold, 2))
   })
-  
 }
 
 shinyApp(ui, server)
