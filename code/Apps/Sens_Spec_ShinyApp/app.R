@@ -12,8 +12,8 @@ ui <- fluidPage(
       numericInput("healthy_mean", "Healthy Mean", value = 24),
       numericInput("healthy_sd", "Healthy SD", value = 2),
       sliderInput("cutoff", "Cutoff Threshold", min = 0, max = 40, value = 15, step = 0.1),
-      radioButtons("show_pathological", "Show Pathological Distribution", 
-                   choices = c("Yes" = TRUE, "No" = FALSE), 
+      radioButtons("show_pathological", "Show Pathological Distribution",
+                   choices = c("Yes" = TRUE, "No" = FALSE),
                    selected = TRUE, inline = TRUE),
       actionButton("regenerate", "Regenerate Data"),
       actionButton("setOptimal", "Set Optimal Threshold (Youden Index)")
@@ -73,8 +73,6 @@ ui <- fluidPage(
 )
 
 server <- function(input, output, session) {
-  n <- 50  
-  
   data <- reactiveVal()
   
   generateData <- function() {
@@ -100,8 +98,13 @@ server <- function(input, output, session) {
   })
   
   rocData <- reactive({
+    req(data())
     dat <- data()
-    roc(dat$Group, dat$Score, ci = TRUE, percent = FALSE, direction = ">")
+    tryCatch({
+      roc(dat$Group, dat$Score, ci = TRUE, percent = FALSE, direction = ">", quiet = TRUE)
+    }, error = function(e) {
+      NULL
+    })
   })
   
   output$histPlot <- renderPlot({
@@ -191,6 +194,7 @@ server <- function(input, output, session) {
   
   output$auc_sim <- renderText({
     req(data())
+    req(rocData())
     round(rocData()$auc, 3)
   })
   
@@ -338,7 +342,17 @@ server <- function(input, output, session) {
   observeEvent(input$setOptimal, {
     tab <- input$tabs
     if (tab == "Simulated Data") {
-      threshold <- as.numeric(coords(rocData(), "best", ret = "threshold", best.method = "youden"))
+      req(data())
+      req(rocData())
+      roc_obj <- rocData()
+      if (!is.null(roc_obj)) {
+        tryCatch({
+          threshold <- as.numeric(coords(roc_obj, "best", ret = "threshold", best.method = "youden"))
+          updateSliderInput(session, "cutoff", value = round(threshold, 2))
+        }, error = function(e) {
+          showNotification("Error calculating optimal threshold. Please try regenerating data.", type = "error")
+        })
+      }
     } else {
       thresholds <- seq(0, 40, by = 0.1)
       youden <- sapply(thresholds, function(t) {
@@ -347,8 +361,8 @@ server <- function(input, output, session) {
         sens + spec - 1
       })
       threshold <- thresholds[which.max(youden)]
+      updateSliderInput(session, "cutoff", value = round(threshold, 2))
     }
-    updateSliderInput(session, "cutoff", value = round(threshold, 2))
   })
 }
 
