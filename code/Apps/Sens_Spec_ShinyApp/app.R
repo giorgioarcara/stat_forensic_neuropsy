@@ -2,7 +2,7 @@ library(shiny)
 library(pROC)
 
 ui <- fluidPage(
-  titlePanel("Sensitivity, Specificity, and ROC Explorer"),
+  titlePanel("Sensitivity, Specificity, and ROC Explorer for Neuropsychological Tests"),
   sidebarLayout(
     sidebarPanel(
       numericInput("pat_n", "Number of Pathological", value = 50, min = 1),
@@ -44,7 +44,7 @@ ui <- fluidPage(
                              column(3, strong("True Negatives:"), textOutput("TN_count"))
                            )
                   ),
-                  tabPanel("Density View",
+                  tabPanel("Theoretical Data",
                            plotOutput("densityPlot", height = "500px"),
                            fluidRow(
                              column(3, strong("Sensitivity:"), textOutput("sensitivity")),
@@ -65,6 +65,29 @@ ui <- fluidPage(
                              tags$li(strong("False Negative (Red):"), " Pathological subject incorrectly classified as Healthy (score ≥ cutoff)"),
                              tags$li(strong("False Positive (Orange):"), " Healthy subject incorrectly classified as Pathological (score < cutoff)"),
                              tags$li(strong("True Negative (Blue):"), " Healthy subject correctly classified (score ≥ cutoff)")
+                           )
+                  ),
+                  tabPanel("ROC Curve",
+                           plotOutput("rocPlot", height = "500px"),
+                           hr(),
+                           h4("ROC Analysis Results"),
+                           fluidRow(
+                             column(6, 
+                                    h5("Area Under the Curve (AUC) with CI"),
+                                    verbatimTextOutput("roc_auc_output")
+                                    ),
+                             column(6,
+                                    h5("Optimal Threshold (Youden Index)"),
+                                    verbatimTextOutput("roc_optimal_output")
+                             )
+                           ),
+                           hr(),
+                           h4("Understanding the ROC Curve"),
+                           tags$ul(
+                             tags$li("The ROC curve plots Sensitivity (True Positive Rate) against 1 - Specificity (False Positive Rate)"),
+                             tags$li("The point shows the currently selected threshold"),
+                             tags$li("AUC = 0.5 indicates random performance; AUC = 1.0 indicates perfect classification"),
+                             tags$li("The diagonal line represents chance performance")
                            )
                   )
       )
@@ -338,6 +361,112 @@ server <- function(input, output, session) {
   output$TN <- renderText({
     round(1 - pnorm(input$cutoff, input$healthy_mean, input$healthy_sd), 3)
   })
+  
+  # ROC Curve tab outputs
+  output$rocPlot <- renderPlot({
+    req(data())
+    req(rocData())
+    roc_obj <- rocData()
+    
+    if (is.null(roc_obj)) return(NULL)
+    
+    # Get current threshold performance
+    dat <- data()
+    threshold <- input$cutoff
+    TP <- sum(dat$Score[dat$Group == "Pathological"] < threshold)
+    FN <- sum(dat$Score[dat$Group == "Pathological"] >= threshold)
+    TN <- sum(dat$Score[dat$Group == "Healthy"] >= threshold)
+    FP <- sum(dat$Score[dat$Group == "Healthy"] < threshold)
+    
+    current_sens <- TP / (TP + FN)
+    current_spec <- TN / (TN + FP)
+    
+    # Get optimal threshold
+    optimal_coords <- coords(roc_obj, "best", ret = c("threshold", "sensitivity", "specificity"), 
+                             best.method = "youden", transpose = FALSE)
+    
+    # Plot ROC curve
+    plot(roc_obj, 
+         main = paste0("ROC Curve (AUC = ", round(roc_obj$auc, 3), ")"),
+         col = "darkblue", lwd = 2,
+         print.auc = FALSE,
+         print.thres = threshold,
+         legacy.axes = TRUE,
+         xlab = "1 - Specificity (False Positive Rate)",
+         ylab = "Sensitivity (True Positive Rate)")
+    
+    #points(roc_obj$specificities, roc_obj$sensitivities, cex = 1.5, pch = 19)
+    
+    # # Add legend
+    # legend("bottomright", 
+    #        legend = c("ROC Curve", "Current Threshold", "Optimal Threshold", "Chance"),
+    #        col = c("darkblue", "red", "blue", "gray"),
+    #        lty = c(1, NA, NA, 2),
+    #        pch = c(NA, 19, 19, NA),
+    #        lwd = c(2, NA, NA, 1),
+    #        cex = 0.9)
+  })
+  
+  output$roc_auc_output <- renderText({
+    req(rocData())
+    roc_obj <- rocData()
+    ci <- roc_obj$ci
+    if (is.null(roc_obj) || is.null(roc_obj$ci)) return("N/A")
+    paste0("AUC: ", round(roc_obj$auc, 4), "; ROC 95% CI: [", round(ci[1], 4), ", ", round(ci[3], 4), "]")
+  })
+  
+  # output$roc_ci_output <- renderText({
+  #   req(rocData())
+  #   roc_obj <- rocData()
+  #   if (is.null(roc_obj) || is.null(roc_obj$ci)) return("N/A")
+  #   ci <- roc_obj$ci
+  #   paste0("95% CI: [", round(ci[1], 4), ", ", round(ci[3], 4), "]")
+  # })
+  
+  output$roc_optimal_output <- renderText({
+    req(rocData())
+    roc_obj <- rocData()
+    if (is.null(roc_obj)) return("N/A")
+    
+    tryCatch({
+      optimal <- coords(roc_obj, "best", ret = c("threshold", "sensitivity", "specificity"), 
+                        best.method = "youden", transpose = FALSE)
+      paste0("Threshold: ", round(optimal$threshold, 3), "\n",
+             "Sensitivity: ", round(optimal$sensitivity, 3), "\n",
+             "Specificity: ", round(optimal$specificity, 3), "\n")
+    }, error = function(e) {
+      "Error calculating optimal threshold"
+    })
+  })
+  
+  output$roc_curr_thresh_output <- renderText({
+    req(rocData())
+    roc_obj <- rocData()
+    if (is.null(roc_obj)) return("N/A")
+    
+    tryCatch({
+      
+      threshold <- input$cutoff
+      roc_obj <- rocData()
+      
+      TP <- sum(dat$Score[dat$Group == "Pathological"] < threshold)
+      TN <- sum(dat$Score[dat$Group == "Healthy"] >= threshold)
+      FP <- sum(dat$Score[dat$Group == "Healthy"] < threshold)
+      FN <- sum(dat$Score[dat$Group == "Pathological"] >= threshold)
+      
+      Sensitivity <- TP / (TP + FN)
+      Specificity <- TN / (TN + FP)
+      Accuracy <- (TP + TN) / (TP + TN + FP + FN)
+      
+      paste0("Threshold: ", round(optimal$threshold, 3), "\n",
+             "Sensitivity: ", round(optimal$sensitivity, 3), "\n",
+             "Specificity: ", round(optimal$specificity, 3), "\n")
+    }, error = function(e) {
+      "Error calculating optimal threshold"
+    })
+  })
+  
+  
   
   observeEvent(input$setOptimal, {
     tab <- input$tabs
