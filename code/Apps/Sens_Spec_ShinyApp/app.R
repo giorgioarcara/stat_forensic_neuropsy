@@ -27,10 +27,12 @@ ui <- fluidPage(
                            plotOutput("histPlot"),
                            h4("Performance metrics"),
                            fluidRow(
-                             column(3, strong("Sensitivity:"), textOutput("sensitivity_sim")),
-                             column(3, strong("Specificity:"), textOutput("specificity_sim")),
-                             column(3, strong("Accuracy:"), textOutput("accuracy_sim")),
-                             column(3, strong("AUC:"), textOutput("auc_sim"))
+                             column(2, strong("Sensitivity:"), textOutput("sensitivity_sim")),
+                             column(2, strong("Specificity:"), textOutput("specificity_sim")),
+                             column(2, strong("Precision:"), textOutput("precision_sim")),
+                             column(2, strong("Accuracy:"), textOutput("accuracy_sim")),
+                             column(2, strong("F1 Score:"), textOutput("f1_sim")),
+                             column(2, strong("AUC:"), textOutput("auc_sim"))
                            ),
                            hr(),
                            h4("Proportions"),
@@ -53,10 +55,12 @@ ui <- fluidPage(
                            plotOutput("densityPlot", height = "500px"),
                            h4("Performance Metrics"),
                            fluidRow(
-                             column(3, strong("Sensitivity:"), textOutput("sensitivity")),
-                             column(3, strong("Specificity:"), textOutput("specificity")),
-                             column(3, strong("Accuracy:"), textOutput("accuracy")),
-                             column(3, strong("AUC:"), textOutput("auc"))
+                             column(2, strong("Sensitivity:"), textOutput("sensitivity")),
+                             column(2, strong("Specificity:"), textOutput("specificity")),
+                             column(2, strong("Precision:"), textOutput("precision")),
+                             column(2, strong("Accuracy:"), textOutput("accuracy")),
+                             column(2, strong("F1 Score:"), textOutput("f1")),
+                             column(2, strong("AUC:"), textOutput("auc"))
                            ),
                            hr(),
                            h4("Proportions"),
@@ -162,21 +166,6 @@ server <- function(input, output, session) {
     x_range <- range(c(h1$breaks, h2$breaks))
     y_range <- range(c(h1$counts, h2$counts))
     
-    
-    # if (show_path && show_hlth) {
-    #   h1 <- hist(dat$Score[dat$Group == "Pathological"], plot = FALSE)
-    #   h2 <- hist(dat$Score[dat$Group == "Healthy"], plot = FALSE)
-    #   x_range <- range(c(h1$breaks, h2$breaks))
-    #   y_range <- range(c(h1$counts, h2$counts))
-    # } else if (show_path) {
-    #   h1 <- hist(dat$Score[dat$Group == "Pathological"], plot = FALSE)
-    #   x_range <- range(h1$breaks)
-    #   y_range <- range(h1$counts)
-    # } else if (show_hlth) {
-    #   h2 <- hist(dat$Score[dat$Group == "Healthy"], plot = FALSE)
-    #   x_range <- range(h2$breaks)
-    #   y_range <- range(h2$counts)
-    #} else {
     if (!(show_path | show_hlth)){
       # If neither shown, create empty plot
       plot(1, type = "n", xlim = x_range, ylim = y_range,
@@ -197,14 +186,14 @@ server <- function(input, output, session) {
     
     # Plot pathological if selected
     if (show_path) {
-      hist(dat$Score[dat$Group == "Pathological"], 
+      hist(dat$Score[dat$Group == "Pathological"],
            col = rgb(0, 0, 0, 0.5),
            breaks = 10, add = TRUE)
     }
     
     # Plot healthy if selected
     if (show_hlth) {
-      hist(dat$Score[dat$Group == "Healthy"], 
+      hist(dat$Score[dat$Group == "Healthy"],
            col = rgb(0.3, 0.4, 0.8, 0.5),
            breaks = 10, add = TRUE)
     }
@@ -247,6 +236,16 @@ server <- function(input, output, session) {
     round(TN / (TN + FP), 3)
   })
   
+  output$precision_sim <- renderText({
+    req(data())
+    dat <- data()
+    threshold <- input$cutoff
+    TP <- sum(dat$Score[dat$Group == "Pathological"] < threshold)
+    FP <- sum(dat$Score[dat$Group == "Healthy"] < threshold)
+    if ((TP + FP) == 0) return("N/A")
+    round(TP / (TP + FP), 3)
+  })
+  
   output$accuracy_sim <- renderText({
     req(data())
     dat <- data()
@@ -256,6 +255,22 @@ server <- function(input, output, session) {
     FP <- sum(dat$Score[dat$Group == "Healthy"] < threshold)
     FN <- sum(dat$Score[dat$Group == "Pathological"] >= threshold)
     round((TP + TN) / (TP + TN + FP + FN), 3)
+  })
+  
+  output$f1_sim <- renderText({
+    req(data())
+    dat <- data()
+    threshold <- input$cutoff
+    TP <- sum(dat$Score[dat$Group == "Pathological"] < threshold)
+    FP <- sum(dat$Score[dat$Group == "Healthy"] < threshold)
+    FN <- sum(dat$Score[dat$Group == "Pathological"] >= threshold)
+    
+    precision <- TP / (TP + FP)
+    recall <- TP / (TP + FN)
+    
+    if ((precision + recall) == 0) return("N/A")
+    f1 <- 2 * (precision * recall) / (precision + recall)
+    round(f1, 3)
   })
   
   output$auc_sim <- renderText({
@@ -407,14 +422,54 @@ server <- function(input, output, session) {
   output$sensitivity <- renderText({
     round(pnorm(input$cutoff, mean = input$pat_mean, sd = input$pat_sd), 3)
   })
+  
   output$specificity <- renderText({
     round(1 - pnorm(input$cutoff, mean = input$healthy_mean, sd = input$healthy_sd), 3)
   })
+  
+  output$precision <- renderText({
+    # Precision = TP / (TP + FP)
+    # For theoretical: P(Score < cutoff | Pathological) * P(Pathological) / P(Score < cutoff)
+    sens <- pnorm(input$cutoff, input$pat_mean, input$pat_sd)
+    fp_rate <- pnorm(input$cutoff, input$healthy_mean, input$healthy_sd)
+    
+    # Assuming equal priors (can be adjusted based on pat_n and healthy_n)
+    prior_pat <- input$pat_n / (input$pat_n + input$healthy_n)
+    prior_healthy <- input$healthy_n / (input$pat_n + input$healthy_n)
+    
+    numerator <- sens * prior_pat
+    denominator <- sens * prior_pat + fp_rate * prior_healthy
+    
+    if (denominator == 0) return("N/A")
+    round(numerator / denominator, 3)
+  })
+  
   output$accuracy <- renderText({
     s <- pnorm(input$cutoff, input$pat_mean, input$pat_sd)
     sp <- 1 - pnorm(input$cutoff, input$healthy_mean, input$healthy_sd)
     round((s + sp) / 2, 3)
   })
+  
+  output$f1 <- renderText({
+    # Calculate theoretical precision
+    sens <- pnorm(input$cutoff, input$pat_mean, input$pat_sd)
+    fp_rate <- pnorm(input$cutoff, input$healthy_mean, input$healthy_sd)
+    
+    prior_pat <- input$pat_n / (input$pat_n + input$healthy_n)
+    prior_healthy <- input$healthy_n / (input$pat_n + input$healthy_n)
+    
+    numerator <- sens * prior_pat
+    denominator <- sens * prior_pat + fp_rate * prior_healthy
+    
+    if (denominator == 0) return("N/A")
+    precision <- numerator / denominator
+    recall <- sens
+    
+    if ((precision + recall) == 0) return("N/A")
+    f1 <- 2 * (precision * recall) / (precision + recall)
+    round(f1, 3)
+  })
+  
   output$auc <- renderText({
     d <- sqrt(input$pat_sd^2 + input$healthy_sd^2)
     auc <- pnorm((input$healthy_mean - input$pat_mean) / d)
@@ -462,16 +517,49 @@ server <- function(input, output, session) {
          main = paste0("ROC Curve (AUC = ", round(roc_obj$auc, 3), ")"),
          col = "darkblue", lwd = 2,
          print.auc = FALSE,
-         print.thres = threshold,
+         print.thres = FALSE,
          legacy.axes = TRUE,
          xlab = "1 - Specificity (False Positive Rate)",
          ylab = "Sensitivity (True Positive Rate)")
     
-
+    # Add diagonal reference line
+    abline(a = 0, b = 1, lty = 2, col = "gray")
+    
     # Only show markers if both distributions are visible
     show_path <- as.logical(input$show_pathological)
     show_hlth <- as.logical(input$show_healthy)
+    
+    if (show_path && show_hlth) {
+      # Mark current threshold
+      points(1 - current_spec, current_sens, pch = 19, col = "red", cex = 2)
+      text(1 - current_spec, current_sens,
+           labels = paste0("Current\n(", round(threshold, 2), ")"),
+           pos = 4, col = "red", cex = 0.9)
       
+      # Mark optimal threshold
+      points(1 - optimal_coords$specificity, optimal_coords$sensitivity,
+             pch = 19, col = "blue", cex = 2)
+      text(1 - optimal_coords$specificity, optimal_coords$sensitivity,
+           labels = paste0("Optimal\n(", round(optimal_coords$threshold, 2), ")"),
+           pos = 2, col = "blue", cex = 0.9)
+      
+      # Add legend with thresholds
+      legend("bottomright",
+             legend = c("ROC Curve", "Current Threshold", "Optimal Threshold", "Chance"),
+             col = c("darkblue", "red", "blue", "gray"),
+             lty = c(1, NA, NA, 2),
+             pch = c(NA, 19, 19, NA),
+             lwd = c(2, NA, NA, 1),
+             cex = 0.9)
+    } else {
+      # Add legend without thresholds
+      legend("bottomright",
+             legend = c("ROC Curve", "Chance"),
+             col = c("darkblue", "gray"),
+             lty = c(1, 2),
+             lwd = c(2, 1),
+             cex = 0.9)
+    }
   })
   
   output$roc_auc_output <- renderText({
