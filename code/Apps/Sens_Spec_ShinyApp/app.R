@@ -445,49 +445,16 @@ server <- function(input, output, session) {
          main = paste0("ROC Curve (AUC = ", round(roc_obj$auc, 3), ")"),
          col = "darkblue", lwd = 2,
          print.auc = FALSE,
-         print.thres = FALSE,
+         print.thres = threshold,
          legacy.axes = TRUE,
          xlab = "1 - Specificity (False Positive Rate)",
          ylab = "Sensitivity (True Positive Rate)")
     
-    # Add diagonal reference line
-    abline(a = 0, b = 1, lty = 2, col = "gray")
-    
+
     # Only show markers if both distributions are visible
     show_path <- as.logical(input$show_pathological)
     show_hlth <- as.logical(input$show_healthy)
-    
-    if (show_path && show_hlth) {
-      # Mark current threshold
-      points(1 - current_spec, current_sens, pch = 19, col = "red", cex = 2)
-      text(1 - current_spec, current_sens,
-           labels = paste0("Current\n(", round(threshold, 2), ")"),
-           pos = 4, col = "red", cex = 0.9)
       
-      # Mark optimal threshold
-      points(1 - optimal_coords$specificity, optimal_coords$sensitivity,
-             pch = 19, col = "blue", cex = 2)
-      text(1 - optimal_coords$specificity, optimal_coords$sensitivity,
-           labels = paste0("Optimal\n(", round(optimal_coords$threshold, 2), ")"),
-           pos = 2, col = "blue", cex = 0.9)
-      
-      # Add legend with thresholds
-      legend("bottomright",
-             legend = c("ROC Curve", "Current Threshold", "Optimal Threshold", "Chance"),
-             col = c("darkblue", "red", "blue", "gray"),
-             lty = c(1, NA, NA, 2),
-             pch = c(NA, 19, 19, NA),
-             lwd = c(2, NA, NA, 1),
-             cex = 0.9)
-    } else {
-      # Add legend without thresholds
-      legend("bottomright",
-             legend = c("ROC Curve", "Chance"),
-             col = c("darkblue", "gray"),
-             lty = c(1, 2),
-             lwd = c(2, 1),
-             cex = 0.9)
-    }
   })
   
   output$roc_auc_output <- renderText({
