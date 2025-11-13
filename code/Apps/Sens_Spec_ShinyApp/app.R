@@ -11,7 +11,7 @@ ui <- fluidPage(
       numericInput("pat_sd", "Pathological SD", value = 2),
       numericInput("healthy_mean", "Healthy Mean", value = 24),
       numericInput("healthy_sd", "Healthy SD", value = 2),
-      sliderInput("cutoff", "Cutoff Threshold", min = 0, max = 40, value = 15, step = 0.1),
+      sliderInput("cutoff", "Cutoff Threshold", min = 0, max = 40, value = 20, step = 0.1),
       radioButtons("show_pathological", "Show Pathological Distribution",
                    choices = c("Yes" = TRUE, "No" = FALSE),
                    selected = TRUE, inline = TRUE),
@@ -336,12 +336,19 @@ server <- function(input, output, session) {
     mean_healthy <- input$healthy_mean
     sd_healthy <- input$healthy_sd
     
+    pat_lims = c(mean_pat - 3*sd_pat , mean_pat + 3*sd_pat )
+    healthy_lims = c(mean_healthy - 3*sd_healthy , mean_healthy + 3*sd_healthy )
+    tot_lims = c(min(c(pat_lims, healthy_lims)), max(pat_lims, healthy_lims))
+    
     show_path <- as.logical(input$show_pathological)
     show_hlth <- as.logical(input$show_healthy)
     
-    x_vals <- seq(0, 40, by = 0.1)
+    x_vals <- seq(tot_lims[1], tot_lims[2], by = 0.1)
     d_pat <- dnorm(x_vals, mean = mean_pat, sd = sd_pat)
     d_healthy <- dnorm(x_vals, mean = mean_healthy, sd = sd_healthy)
+    
+    d_pat = d_pat * input$pat_n
+    d_healthy = d_healthy * input$healthy_n
     
     sens <- pnorm(threshold, mean = mean_pat, sd = sd_pat)
     spec <- 1 - pnorm(threshold, mean = mean_healthy, sd = sd_healthy)
