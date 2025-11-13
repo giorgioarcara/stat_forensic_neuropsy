@@ -156,25 +156,35 @@ server <- function(input, output, session) {
     show_path <- as.logical(input$show_pathological)
     show_hlth <- as.logical(input$show_healthy)
     
-    # Determine plot ranges
-    if (show_path && show_hlth) {
-      h1 <- hist(dat$Score[dat$Group == "Pathological"], plot = FALSE)
-      h2 <- hist(dat$Score[dat$Group == "Healthy"], plot = FALSE)
-      x_range <- range(c(h1$breaks, h2$breaks))
-      y_range <- range(c(h1$counts, h2$counts))
-    } else if (show_path) {
-      h1 <- hist(dat$Score[dat$Group == "Pathological"], plot = FALSE)
-      x_range <- range(h1$breaks)
-      y_range <- range(h1$counts)
-    } else if (show_hlth) {
-      h2 <- hist(dat$Score[dat$Group == "Healthy"], plot = FALSE)
-      x_range <- range(h2$breaks)
-      y_range <- range(h2$counts)
-    } else {
+    # Determine plot ranges (used fixed range)
+    h1 <- hist(dat$Score[dat$Group == "Pathological"], plot = FALSE)
+    h2 <- hist(dat$Score[dat$Group == "Healthy"], plot = FALSE)
+    x_range <- range(c(h1$breaks, h2$breaks))
+    y_range <- range(c(h1$counts, h2$counts))
+    
+    
+    # if (show_path && show_hlth) {
+    #   h1 <- hist(dat$Score[dat$Group == "Pathological"], plot = FALSE)
+    #   h2 <- hist(dat$Score[dat$Group == "Healthy"], plot = FALSE)
+    #   x_range <- range(c(h1$breaks, h2$breaks))
+    #   y_range <- range(c(h1$counts, h2$counts))
+    # } else if (show_path) {
+    #   h1 <- hist(dat$Score[dat$Group == "Pathological"], plot = FALSE)
+    #   x_range <- range(h1$breaks)
+    #   y_range <- range(h1$counts)
+    # } else if (show_hlth) {
+    #   h2 <- hist(dat$Score[dat$Group == "Healthy"], plot = FALSE)
+    #   x_range <- range(h2$breaks)
+    #   y_range <- range(h2$counts)
+    #} else {
+    if (!(show_path | show_hlth)){
       # If neither shown, create empty plot
-      plot(1, type = "n", xlim = c(0, 40), ylim = c(0, 1),
+      plot(1, type = "n", xlim = x_range, ylim = y_range,
            xlab = "Score", ylab = "Frequency",
            main = "No distributions selected")
+      
+      abline(v = threshold, lwd = 2, col = "red")
+      
       return()
     }
     
