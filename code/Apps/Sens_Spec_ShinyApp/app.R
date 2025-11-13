@@ -22,13 +22,15 @@ ui <- fluidPage(
       tabsetPanel(id = "tabs",
                   tabPanel("Simulated Data",
                            plotOutput("histPlot"),
-                           h4("Proportions"),
+                           h4("Performance metrics"),
                            fluidRow(
                              column(3, strong("Sensitivity:"), textOutput("sensitivity_sim")),
                              column(3, strong("Specificity:"), textOutput("specificity_sim")),
                              column(3, strong("Accuracy:"), textOutput("accuracy_sim")),
                              column(3, strong("AUC:"), textOutput("auc_sim"))
                            ),
+                           hr(),
+                           h4("Proportions"),
                            fluidRow(
                              column(3, strong("True Positives:"), textOutput("TP_sim")),
                              column(3, strong("False Negatives:"), textOutput("FN_sim")),
@@ -46,12 +48,15 @@ ui <- fluidPage(
                   ),
                   tabPanel("Theoretical Data",
                            plotOutput("densityPlot", height = "500px"),
+                           h4("Performance Metrics"),
                            fluidRow(
                              column(3, strong("Sensitivity:"), textOutput("sensitivity")),
                              column(3, strong("Specificity:"), textOutput("specificity")),
                              column(3, strong("Accuracy:"), textOutput("accuracy")),
                              column(3, strong("AUC:"), textOutput("auc"))
                            ),
+                           hr(),
+                           h4("Proportions"),
                            fluidRow(
                              column(3, strong("True Positives:"), textOutput("TP")),
                              column(3, strong("False Negatives:"), textOutput("FN")),
@@ -61,10 +66,10 @@ ui <- fluidPage(
                            hr(),
                            h4("What Do the Colors Mean?"),
                            tags$ul(
-                             tags$li(strong("True Positive (Green):"), " Pathological subject correctly classified (score < cutoff)"),
-                             tags$li(strong("False Negative (Red):"), " Pathological subject incorrectly classified as Healthy (score ≥ cutoff)"),
-                             tags$li(strong("False Positive (Orange):"), " Healthy subject incorrectly classified as Pathological (score < cutoff)"),
-                             tags$li(strong("True Negative (Blue):"), " Healthy subject correctly classified (score ≥ cutoff)")
+                             tags$li(strong("True Positive (Green):"), " Pathological participant correctly classified (score < cutoff)"),
+                             tags$li(strong("False Negative (Red):"), " Pathological participant incorrectly classified as Healthy (score ≥ cutoff)"),
+                             tags$li(strong("False Positive (Orange):"), " Healthy participant incorrectly classified as Pathological (score < cutoff)"),
+                             tags$li(strong("True Negative (Blue):"), " Healthy participant correctly classified (score ≥ cutoff)")
                            )
                   ),
                   tabPanel("ROC Curve",
