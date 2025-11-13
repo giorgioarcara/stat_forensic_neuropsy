@@ -15,6 +15,9 @@ ui <- fluidPage(
       radioButtons("show_pathological", "Show Pathological Distribution",
                    choices = c("Yes" = TRUE, "No" = FALSE),
                    selected = TRUE, inline = TRUE),
+      radioButtons("show_healthy", "Show Healthy Distribution",
+                   choices = c("Yes" = TRUE, "No" = FALSE),
+                   selected = TRUE, inline = TRUE),
       actionButton("regenerate", "Regenerate Data"),
       actionButton("setOptimal", "Set Optimal Threshold (Youden Index)")
     ),
@@ -77,10 +80,10 @@ ui <- fluidPage(
                            hr(),
                            h4("ROC Analysis Results"),
                            fluidRow(
-                             column(6, 
+                             column(6,
                                     h5("Area Under the Curve (AUC) with CI"),
                                     verbatimTextOutput("roc_auc_output")
-                                    ),
+                             ),
                              column(6,
                                     h5("Optimal Threshold (Youden Index)"),
                                     verbatimTextOutput("roc_optimal_output")
@@ -150,47 +153,72 @@ server <- function(input, output, session) {
     Specificity <- TN / (TN + FP)
     Accuracy <- (TP + TN) / (TP + TN + FP + FN)
     
-    h1 <- hist(dat$Score[dat$Group == "Pathological"], plot = FALSE)
-    h2 <- hist(dat$Score[dat$Group == "Healthy"], plot = FALSE)
+    show_path <- as.logical(input$show_pathological)
+    show_hlth <- as.logical(input$show_healthy)
     
-    x_range <- range(c(h1$breaks, h2$breaks))
-    y_range <- range(c(h1$counts, h2$counts))
-    
-    # Start with healthy if pathological is hidden
-    if (as.logical(input$show_pathological)) {
-      hist(dat$Score[dat$Group == "Pathological"], col = rgb(0, 0, 0, 0.5),
-           xlim = x_range, ylim = y_range, breaks = 10,
-           xlab = "Score", main = paste0("Specificity = ", round(Specificity,2),
-                                         ", Sensitivity = ", round(Sensitivity,2),
-                                         "\nAUC = ", round(roc_obj$auc, 2)))
-      par(new = TRUE)
-      hist(dat$Score[dat$Group == "Healthy"], col = rgb(0.3, 0.4, 0.8, 0.3),
-           breaks = 10, xlim = x_range, ylim = y_range,
-           xlab = "", ylab = "", main = "")
+    # Determine plot ranges
+    if (show_path && show_hlth) {
+      h1 <- hist(dat$Score[dat$Group == "Pathological"], plot = FALSE)
+      h2 <- hist(dat$Score[dat$Group == "Healthy"], plot = FALSE)
+      x_range <- range(c(h1$breaks, h2$breaks))
+      y_range <- range(c(h1$counts, h2$counts))
+    } else if (show_path) {
+      h1 <- hist(dat$Score[dat$Group == "Pathological"], plot = FALSE)
+      x_range <- range(h1$breaks)
+      y_range <- range(h1$counts)
+    } else if (show_hlth) {
+      h2 <- hist(dat$Score[dat$Group == "Healthy"], plot = FALSE)
+      x_range <- range(h2$breaks)
+      y_range <- range(h2$counts)
     } else {
-      hist(dat$Score[dat$Group == "Healthy"], col = rgb(0.3, 0.4, 0.8, 0.5),
-           xlim = x_range, ylim = y_range, breaks = 10,
-           xlab = "Score", main = paste0("Specificity = ", round(Specificity,2),
-                                         ", Sensitivity = ", round(Sensitivity,2),
-                                         "\nAUC = ", round(roc_obj$auc, 2)))
+      # If neither shown, create empty plot
+      plot(1, type = "n", xlim = c(0, 40), ylim = c(0, 1),
+           xlab = "Score", ylab = "Frequency",
+           main = "No distributions selected")
+      return()
+    }
+    
+    # Create base plot
+    plot(1, type = "n", xlim = x_range, ylim = y_range,
+         xlab = "Score", ylab = "Frequency",
+         main = paste0("Specificity = ", round(Specificity, 2),
+                       ", Sensitivity = ", round(Sensitivity, 2),
+                       "\nAUC = ", round(roc_obj$auc, 2)))
+    
+    # Plot pathological if selected
+    if (show_path) {
+      hist(dat$Score[dat$Group == "Pathological"], 
+           col = rgb(0, 0, 0, 0.5),
+           breaks = 10, add = TRUE)
+    }
+    
+    # Plot healthy if selected
+    if (show_hlth) {
+      hist(dat$Score[dat$Group == "Healthy"], 
+           col = rgb(0.3, 0.4, 0.8, 0.5),
+           breaks = 10, add = TRUE)
     }
     
     abline(v = threshold, lwd = 2, col = "red")
     
-    legend_labels <- if (as.logical(input$show_pathological)) {
-      c("Pathological", "Healthy")
-    } else {
-      "Healthy"
+    # Create legend based on what's shown
+    legend_labels <- c()
+    legend_fills <- c()
+    if (show_path) {
+      legend_labels <- c(legend_labels, "Pathological")
+      legend_fills <- c(legend_fills, rgb(0, 0, 0, 0.5))
     }
-    legend_fills <- if (as.logical(input$show_pathological)) {
-      c("black", rgb(0.3, 0.4, 0.8, 0.5))
-    } else {
-      rgb(0.3, 0.4, 0.8, 0.5)
+    if (show_hlth) {
+      legend_labels <- c(legend_labels, "Healthy")
+      legend_fills <- c(legend_fills, rgb(0.3, 0.4, 0.8, 0.5))
     }
-    legend("topright", legend = legend_labels, fill = legend_fills)
+    
+    if (length(legend_labels) > 0) {
+      legend("topright", legend = legend_labels, fill = legend_fills)
+    }
   })
   
-  # Simulated Data panel outputs (proportions, matching Density View)
+  # Simulated Data panel outputs
   output$sensitivity_sim <- renderText({
     req(data())
     dat <- data()
@@ -298,6 +326,9 @@ server <- function(input, output, session) {
     mean_healthy <- input$healthy_mean
     sd_healthy <- input$healthy_sd
     
+    show_path <- as.logical(input$show_pathological)
+    show_hlth <- as.logical(input$show_healthy)
+    
     x_vals <- seq(0, 40, by = 0.1)
     d_pat <- dnorm(x_vals, mean = mean_pat, sd = sd_pat)
     d_healthy <- dnorm(x_vals, mean = mean_healthy, sd = sd_healthy)
@@ -307,13 +338,25 @@ server <- function(input, output, session) {
     accuracy <- (sens + spec) / 2
     auc <- pnorm((mean_healthy - mean_pat) / sqrt(sd_pat^2 + sd_healthy^2))
     
-    plot(x_vals, d_pat, type = "n", ylim = c(0, max(c(d_pat, d_healthy)) * 1.1),
+    # Determine y-axis range based on what's shown
+    if (show_path && show_hlth) {
+      y_max <- max(c(d_pat, d_healthy)) * 1.1
+    } else if (show_path) {
+      y_max <- max(d_pat) * 1.1
+    } else if (show_hlth) {
+      y_max <- max(d_healthy) * 1.1
+    } else {
+      y_max <- 1
+    }
+    
+    plot(x_vals, d_pat, type = "n", ylim = c(0, y_max),
          xlab = "Score", ylab = "Density",
          main = paste0("Specificity = ", round(spec, 2),
                        ", Sensitivity = ", round(sens, 2),
                        "\nAUC = ", round(auc, 2)))
     
-    if (as.logical(input$show_pathological)) {
+    # Plot pathological distribution components if selected
+    if (show_path) {
       polygon(c(x_vals[x_vals < threshold], rev(x_vals[x_vals < threshold])),
               c(d_pat[x_vals < threshold], rep(0, sum(x_vals < threshold))),
               col = rgb(0, 0.7, 0, 0.4), border = NA)  # TP
@@ -322,17 +365,24 @@ server <- function(input, output, session) {
               col = rgb(1, 0, 0, 0.4), border = NA)  # FN
     }
     
-    polygon(c(x_vals[x_vals < threshold], rev(x_vals[x_vals < threshold])),
-            c(d_healthy[x_vals < threshold], rep(0, sum(x_vals < threshold))),
-            col = rgb(1, 0.5, 0, 0.4), border = NA)  # FP
-    polygon(c(x_vals[x_vals >= threshold], rev(x_vals[x_vals >= threshold])),
-            c(d_healthy[x_vals >= threshold], rep(0, sum(x_vals >= threshold))),
-            col = rgb(0, 0, 1, 0.4), border = NA)  # TN
+    # Plot healthy distribution components if selected
+    if (show_hlth) {
+      polygon(c(x_vals[x_vals < threshold], rev(x_vals[x_vals < threshold])),
+              c(d_healthy[x_vals < threshold], rep(0, sum(x_vals < threshold))),
+              col = rgb(1, 0.5, 0, 0.4), border = NA)  # FP
+      polygon(c(x_vals[x_vals >= threshold], rev(x_vals[x_vals >= threshold])),
+              c(d_healthy[x_vals >= threshold], rep(0, sum(x_vals >= threshold))),
+              col = rgb(0, 0, 1, 0.4), border = NA)  # TN
+    }
     
-    if (as.logical(input$show_pathological)) {
+    # Draw distribution lines
+    if (show_path) {
       lines(x_vals, d_pat, col = "black", lwd = 2)
     }
-    lines(x_vals, d_healthy, col = "blue", lwd = 2)
+    if (show_hlth) {
+      lines(x_vals, d_healthy, col = "blue", lwd = 2)
+    }
+    
     abline(v = threshold, lwd = 2, lty = 2)
   })
   
@@ -387,29 +437,57 @@ server <- function(input, output, session) {
     current_spec <- TN / (TN + FP)
     
     # Get optimal threshold
-    optimal_coords <- coords(roc_obj, "best", ret = c("threshold", "sensitivity", "specificity"), 
+    optimal_coords <- coords(roc_obj, "best", ret = c("threshold", "sensitivity", "specificity"),
                              best.method = "youden", transpose = FALSE)
     
     # Plot ROC curve
-    plot(roc_obj, 
+    plot(roc_obj,
          main = paste0("ROC Curve (AUC = ", round(roc_obj$auc, 3), ")"),
          col = "darkblue", lwd = 2,
          print.auc = FALSE,
-         print.thres = threshold,
+         print.thres = FALSE,
          legacy.axes = TRUE,
          xlab = "1 - Specificity (False Positive Rate)",
          ylab = "Sensitivity (True Positive Rate)")
     
-    #points(roc_obj$specificities, roc_obj$sensitivities, cex = 1.5, pch = 19)
+    # Add diagonal reference line
+    abline(a = 0, b = 1, lty = 2, col = "gray")
     
-    # # Add legend
-    # legend("bottomright", 
-    #        legend = c("ROC Curve", "Current Threshold", "Optimal Threshold", "Chance"),
-    #        col = c("darkblue", "red", "blue", "gray"),
-    #        lty = c(1, NA, NA, 2),
-    #        pch = c(NA, 19, 19, NA),
-    #        lwd = c(2, NA, NA, 1),
-    #        cex = 0.9)
+    # Only show markers if both distributions are visible
+    show_path <- as.logical(input$show_pathological)
+    show_hlth <- as.logical(input$show_healthy)
+    
+    if (show_path && show_hlth) {
+      # Mark current threshold
+      points(1 - current_spec, current_sens, pch = 19, col = "red", cex = 2)
+      text(1 - current_spec, current_sens,
+           labels = paste0("Current\n(", round(threshold, 2), ")"),
+           pos = 4, col = "red", cex = 0.9)
+      
+      # Mark optimal threshold
+      points(1 - optimal_coords$specificity, optimal_coords$sensitivity,
+             pch = 19, col = "blue", cex = 2)
+      text(1 - optimal_coords$specificity, optimal_coords$sensitivity,
+           labels = paste0("Optimal\n(", round(optimal_coords$threshold, 2), ")"),
+           pos = 2, col = "blue", cex = 0.9)
+      
+      # Add legend with thresholds
+      legend("bottomright",
+             legend = c("ROC Curve", "Current Threshold", "Optimal Threshold", "Chance"),
+             col = c("darkblue", "red", "blue", "gray"),
+             lty = c(1, NA, NA, 2),
+             pch = c(NA, 19, 19, NA),
+             lwd = c(2, NA, NA, 1),
+             cex = 0.9)
+    } else {
+      # Add legend without thresholds
+      legend("bottomright",
+             legend = c("ROC Curve", "Chance"),
+             col = c("darkblue", "gray"),
+             lty = c(1, 2),
+             lwd = c(2, 1),
+             cex = 0.9)
+    }
   })
   
   output$roc_auc_output <- renderText({
@@ -420,21 +498,13 @@ server <- function(input, output, session) {
     paste0("AUC: ", round(roc_obj$auc, 4), "; ROC 95% CI: [", round(ci[1], 4), ", ", round(ci[3], 4), "]")
   })
   
-  # output$roc_ci_output <- renderText({
-  #   req(rocData())
-  #   roc_obj <- rocData()
-  #   if (is.null(roc_obj) || is.null(roc_obj$ci)) return("N/A")
-  #   ci <- roc_obj$ci
-  #   paste0("95% CI: [", round(ci[1], 4), ", ", round(ci[3], 4), "]")
-  # })
-  
   output$roc_optimal_output <- renderText({
     req(rocData())
     roc_obj <- rocData()
     if (is.null(roc_obj)) return("N/A")
     
     tryCatch({
-      optimal <- coords(roc_obj, "best", ret = c("threshold", "sensitivity", "specificity"), 
+      optimal <- coords(roc_obj, "best", ret = c("threshold", "sensitivity", "specificity"),
                         best.method = "youden", transpose = FALSE)
       paste0("Threshold: ", round(optimal$threshold, 3), "\n",
              "Sensitivity: ", round(optimal$sensitivity, 3), "\n",
@@ -443,35 +513,6 @@ server <- function(input, output, session) {
       "Error calculating optimal threshold"
     })
   })
-  
-  output$roc_curr_thresh_output <- renderText({
-    req(rocData())
-    roc_obj <- rocData()
-    if (is.null(roc_obj)) return("N/A")
-    
-    tryCatch({
-      
-      threshold <- input$cutoff
-      roc_obj <- rocData()
-      
-      TP <- sum(dat$Score[dat$Group == "Pathological"] < threshold)
-      TN <- sum(dat$Score[dat$Group == "Healthy"] >= threshold)
-      FP <- sum(dat$Score[dat$Group == "Healthy"] < threshold)
-      FN <- sum(dat$Score[dat$Group == "Pathological"] >= threshold)
-      
-      Sensitivity <- TP / (TP + FN)
-      Specificity <- TN / (TN + FP)
-      Accuracy <- (TP + TN) / (TP + TN + FP + FN)
-      
-      paste0("Threshold: ", round(optimal$threshold, 3), "\n",
-             "Sensitivity: ", round(optimal$sensitivity, 3), "\n",
-             "Specificity: ", round(optimal$specificity, 3), "\n")
-    }, error = function(e) {
-      "Error calculating optimal threshold"
-    })
-  })
-  
-  
   
   observeEvent(input$setOptimal, {
     tab <- input$tabs
