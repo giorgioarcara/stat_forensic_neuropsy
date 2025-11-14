@@ -222,7 +222,7 @@ server <- function(input, output, session) {
     h1 <- hist(dat$Score[dat$Group == "Pathological"], plot = FALSE)
     h2 <- hist(dat$Score[dat$Group == "Healthy"], plot = FALSE)
     x_range <- range(c(h1$breaks, h2$breaks))
-    y_range <- range(c(h1$counts, h2$counts))
+    y_range <- range(c(h1$counts, h2$counts)) * 1.05
     
     if (!(show_path | show_hlth)){
       # If neither shown, create empty plot
@@ -256,7 +256,7 @@ server <- function(input, output, session) {
            breaks = 10, add = TRUE)
     }
     
-    abline(v = threshold, lwd = 2, col = "red")
+    abline(v = threshold, lwd = 2, lty = 2)
     
     # Create legend based on what's shown
     legend_labels <- c()
@@ -449,7 +449,7 @@ server <- function(input, output, session) {
       y_max <- 1
     }
     
-    plot(x_vals, d_pat, type = "n", ylim = c(0, y_max),
+    plot(x_vals, d_pat, type = "n", ylim = c(0, y_max*1.05),
          xlab = "Score", ylab = "Density",
          main = paste0("Specificity = ", round(spec, 2),
                        ", Sensitivity = ", round(sens, 2),
