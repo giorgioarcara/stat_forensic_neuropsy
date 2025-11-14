@@ -26,13 +26,18 @@ ui <- fluidPage(
                   tabPanel("Simulated Data",
                            plotOutput("histPlot"),
                            h4("Performance metrics"),
-                           fluidRow(
-                             column(2, strong("Sensitivity:"), textOutput("sensitivity_sim")),
-                             column(2, strong("Specificity:"), textOutput("specificity_sim")),
-                             column(2, strong("Precision:"), textOutput("precision_sim")),
-                             column(2, strong("Accuracy:"), textOutput("accuracy_sim")),
-                             column(2, strong("F1 Score:"), textOutput("f1_sim")),
-                             column(2, strong("AUC:"), textOutput("auc_sim"))
+                           fluidRow(class = "metric-row",
+                                    column(12, 
+                                           div(style = "display: flex; justify-content: space-between;",
+                                               div(strong("Sensitivity:"), textOutput("sensitivity_sim", inline = TRUE)),
+                                               div(strong("Specificity:"), textOutput("specificity_sim", inline = TRUE)),
+                                               div(strong("PPV:"), textOutput("precision_sim", inline = TRUE)),
+                                               div(strong("NPV:"), textOutput("npv_sim", inline = TRUE)),
+                                               div(strong("Accuracy:"), textOutput("accuracy_sim", inline = TRUE)),
+                                               div(strong("F1:"), textOutput("f1_sim", inline = TRUE)),
+                                               div(strong("AUC:"), textOutput("auc_sim", inline = TRUE))
+                                           )
+                                    )
                            ),
                            hr(),
                            h4("Proportions"),
@@ -52,15 +57,23 @@ ui <- fluidPage(
                            )
                   ),
                   tabPanel("Theoretical Data",
-                           plotOutput("densityPlot", height = "500px"),
-                           h4("Performance Metrics"),
-                           fluidRow(
-                             column(2, strong("Sensitivity:"), textOutput("sensitivity")),
-                             column(2, strong("Specificity:"), textOutput("specificity")),
-                             column(2, strong("Precision:"), textOutput("precision")),
-                             column(2, strong("Accuracy:"), textOutput("accuracy")),
-                             column(2, strong("F1 Score:"), textOutput("f1")),
-                             column(2, strong("AUC:"), textOutput("auc"))
+                           plotOutput("densityPlot"),
+                           h4("Performance metrics"),
+                           fluidRow(class = "metric-row",
+                                    div(style = "display: flex; justify-content: space-between;",
+                                        column(12, 
+                                               div(style = "display: flex; justify-content: space-between;",
+                                                   div(strong("Sensitivity:"), textOutput("sensitivity", inline = TRUE)),
+                                                   div(strong("Specificity:"), textOutput("specificity", inline = TRUE)),
+                                                   div(strong("PPV:"), textOutput("precision", inline = TRUE)),
+                                                   div(strong("NPV:"), textOutput("npv", inline = TRUE)),
+                                                   div(strong("Accuracy:"), textOutput("accuracy", inline = TRUE)),
+                                                   div(strong("F1:"), textOutput("f1", inline = TRUE)),
+                                                   div(strong("AUC:"), textOutput("auc", inline = TRUE))
+                                                   
+                                               )
+                                        )
+                                    )
                            ),
                            hr(),
                            h4("Proportions"),
@@ -244,6 +257,16 @@ server <- function(input, output, session) {
     FP <- sum(dat$Score[dat$Group == "Healthy"] < threshold)
     if ((TP + FP) == 0) return("N/A")
     round(TP / (TP + FP), 3)
+  })
+  
+  output$npv_sim <- renderText({
+    req(data())
+    dat <- data()
+    threshold <- input$cutoff
+    TN <- sum(dat$Score[dat$Group == "Healthy"] >= threshold)
+    FN <- sum(dat$Score[dat$Group == "Pathological"] >= threshold)
+    if ((TN + FN) == 0) return("N/A")
+    round(TN / (TN + FN), 3)
   })
   
   output$accuracy_sim <- renderText({
@@ -439,6 +462,22 @@ server <- function(input, output, session) {
     
     numerator <- sens * prior_pat
     denominator <- sens * prior_pat + fp_rate * prior_healthy
+    
+    if (denominator == 0) return("N/A")
+    round(numerator / denominator, 3)
+  })
+  
+  output$npv <- renderText({
+    # NPV = TN / (TN + FN)
+    # For theoretical: P(Score >= cutoff | Healthy) * P(Healthy) / P(Score >= cutoff)
+    spec <- 1 - pnorm(input$cutoff, input$healthy_mean, input$healthy_sd)
+    fn_rate <- 1 - pnorm(input$cutoff, input$pat_mean, input$pat_sd)
+    
+    prior_pat <- input$pat_n / (input$pat_n + input$healthy_n)
+    prior_healthy <- input$healthy_n / (input$pat_n + input$healthy_n)
+    
+    numerator <- spec * prior_healthy
+    denominator <- spec * prior_healthy + fn_rate * prior_pat
     
     if (denominator == 0) return("N/A")
     round(numerator / denominator, 3)
