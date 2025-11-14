@@ -1,7 +1,9 @@
 library(shiny)
 library(pROC)
 
+author_date_text = "<i>Author: Giorgio Arcara; Version: 11/2025 </i>"
 warning_text = "<i> NOTE: this is an educational resource, not meant to be used for clinical practice.</i>"
+warning_text2= "<i> NOTE: This application is currently under debugging, use with Caution <i>"
 
 ui <- fluidPage(
   titlePanel("Sensitivity, Specificity, and ROC Explorer for Neuropsychological Tests"),
@@ -21,10 +23,48 @@ ui <- fluidPage(
                    choices = c("Yes" = TRUE, "No" = FALSE),
                    selected = TRUE, inline = TRUE),
       actionButton("regenerate", "Regenerate Data"),
-      actionButton("setOptimal", "Set Optimal Threshold (Youden Index)")
+      actionButton("setOptimal", "Set Optimal Threshold (Youden Index)"),
+      br(),
+      HTML(author_date_text)
     ),
     mainPanel(
       tabsetPanel(id = "tabs",
+                  tabPanel(
+                    title = "Instructions",
+                    br(),
+                    #p(style = "font-size: 20px;", "Welcome to the App accompanying the article 'XXXXX'"),
+                    p(style = "font-size: 18px;", "This application is an educational resource to learn about basic concepts as Sensitivity and Specificity"),
+                    br(),
+                    p(style = "font-size: 16px;", "The", tags$strong("Sidebar panel"), "on the left allows to insert some parameters to simulate data and to check both empirical and expected (i.e. theoretical) classifications. You can change parameters as desired and then check the results in the Tabs 1. 2. and 3. . 
+                      Click on 'Regenerate' data to simulate new samples."),
+                    tags$ul(
+                      tags$li(style = "font-size: 16px;", tags$strong("Simulated Data"), " tab shows the results for the simulated data with parameter set on the sidebar"),        
+                      tags$li(style = "font-size: 16px;", tags$strong("Theoretical Data"), " tab shows the expected results (i.e. theoretical expectations), given the parameters specified in the sidebar panel"),        
+                      tags$li(style = "font-size: 16px;", tags$strong("ROC Curve"), " tab shows the ROC Curve for the simulated data."),
+                      #tags$li(style = "font-size: 16px;", "See the 'Help' tab for details and clarifications")
+                    ),
+                    HTML(warning_text),
+                    br(),
+                    br(),
+                    # The code below is enclosed within (div) to have a colored box
+                    #div(
+                    #  style = "border: 1px solid #ccc; /* Light gray border */
+                    #           padding: 15px; /* Space inside the box */
+                    #           margin-bottom: 20px; /* Space below the box */
+                    #           background-color: #f9f9f9; /* Very light gray background */
+                    #           border-radius: 5px; /* Slightly rounded corners */
+                    #           box-shadow: 2px 2px 5px rgba(0,0,0,0.1); /* Subtle shadow */",
+                    
+                    #  h4("Select Regression Models", style = "margin-top: 0;"), # Adjust margin for h4 inside the div
+                    #  br(),
+                    #  HTML("Select here the regression models you want to use. <br> First option is recommended but it works only if the score from LEQ (Life Experience Questionnaire) is available.<br>"),
+                    #  br(),
+                    #radioButtons("selected_models", "Select Models",
+                    #             choices = c("Models including Age, Education, Sex, LEQ" = "including_CRQ",
+                    #                         "Models including Age, Education, Sex" = "NOTincluding_CRQ"
+                    #             ))
+                    # )
+                  ),
                   tabPanel("Simulated Data",
                            plotOutput("histPlot"),
                            h4("Performance metrics"),
