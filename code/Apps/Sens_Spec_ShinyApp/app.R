@@ -222,7 +222,7 @@ server <- function(input, output, session) {
     h1 <- hist(dat$Score[dat$Group == "Pathological"], plot = FALSE)
     h2 <- hist(dat$Score[dat$Group == "Healthy"], plot = FALSE)
     x_range <- range(c(h1$breaks, h2$breaks))
-    y_range <- range(c(h1$counts, h2$counts)) * 1.05
+    y_range <- range(c(h1$counts, h2$counts)) * 1.1
     
     if (!(show_path | show_hlth)){
       # If neither shown, create empty plot
@@ -256,7 +256,7 @@ server <- function(input, output, session) {
            breaks = 10, add = TRUE)
     }
     
-    abline(v = threshold, lwd = 2, lty = 2)
+    abline(v = threshold, lwd = 3, lty = 2)
     
     # Create legend based on what's shown
     legend_labels <- c()
@@ -419,19 +419,19 @@ server <- function(input, output, session) {
     mean_healthy <- input$healthy_mean
     sd_healthy <- input$healthy_sd
     
-    pat_lims = c(mean_pat - 3*sd_pat , mean_pat + 3*sd_pat )
-    healthy_lims = c(mean_healthy - 3*sd_healthy , mean_healthy + 3*sd_healthy )
-    tot_lims = c(min(c(pat_lims, healthy_lims)), max(pat_lims, healthy_lims))
+    pat_x_lims = c(mean_pat - 3*sd_pat , mean_pat + 3*sd_pat )
+    healthy_x_lims = c(mean_healthy - 3*sd_healthy , mean_healthy + 3*sd_healthy )
+    tot_x_lims = c(min(c(pat_x_lims, healthy_x_lims)), max(pat_x_lims, healthy_x_lims))
     
     show_path <- as.logical(input$show_pathological)
     show_hlth <- as.logical(input$show_healthy)
     
-    x_vals <- seq(tot_lims[1], tot_lims[2], by = 0.1)
+    x_vals <- seq(tot_x_lims[1], tot_x_lims[2], by = 0.1)
     d_pat <- dnorm(x_vals, mean = mean_pat, sd = sd_pat)
     d_healthy <- dnorm(x_vals, mean = mean_healthy, sd = sd_healthy)
     
-    d_pat = d_pat * input$pat_n
-    d_healthy = d_healthy * input$healthy_n
+    d_pat = d_pat * input$pat_n/(input$pat_n+input$healthy_n)
+    d_healthy = d_healthy * input$healthy_n/(input$pat_n+input$healthy_n)
     
     sens <- pnorm(threshold, mean = mean_pat, sd = sd_pat)
     spec <- 1 - pnorm(threshold, mean = mean_healthy, sd = sd_healthy)
@@ -449,8 +449,8 @@ server <- function(input, output, session) {
       y_max <- 1
     }
     
-    plot(x_vals, d_pat, type = "n", ylim = c(0, y_max*1.05),
-         xlab = "Score", ylab = "Density",
+    plot(x_vals, d_pat, type = "n", ylim = c(0, y_max*1.1),
+         xlab = "Score", ylab = "Density (scaled by N)",
          main = paste0("Specificity = ", round(spec, 2),
                        ", Sensitivity = ", round(sens, 2),
                        "\nAUC = ", round(auc, 2)))
@@ -483,7 +483,7 @@ server <- function(input, output, session) {
       lines(x_vals, d_healthy, col = "blue", lwd = 2)
     }
     
-    abline(v = threshold, lwd = 2, lty = 2)
+    abline(v = threshold, lwd = 3, lty = 2)
   })
   
   # Theoretical metric outputs (Density View panel)
