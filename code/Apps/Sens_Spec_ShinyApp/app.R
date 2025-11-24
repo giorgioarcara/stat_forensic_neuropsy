@@ -9,8 +9,8 @@ ui <- fluidPage(
   titlePanel("Sensitivity, Specificity, and ROC Explorer for Neuropsychological Tests"),
   sidebarLayout(
     sidebarPanel(
-      numericInput("pat_n", "Number of Pathological", value = 50, min = 1),
-      numericInput("healthy_n", "Number of Healthy", value = 50, min = 1),
+      numericInput("pat_n", "Number of Pathological individuals", value = 50, min = 1),
+      numericInput("healthy_n", "Number of Healthy individuals", value = 50, min = 1),
       numericInput("pat_mean", "Pathological Mean", value = 20),
       numericInput("pat_sd", "Pathological SD", value = 2),
       numericInput("healthy_mean", "Healthy Mean", value = 24),
@@ -201,6 +201,7 @@ server <- function(input, output, session) {
   })
   
   output$histPlot <- renderPlot({
+    
     req(data())
     dat <- data()
     threshold <- input$cutoff
@@ -413,6 +414,7 @@ server <- function(input, output, session) {
   })
   
   output$densityPlot <- renderPlot({
+    
     threshold <- input$cutoff
     mean_pat <- input$pat_mean
     sd_pat <- input$pat_sd
@@ -626,9 +628,9 @@ server <- function(input, output, session) {
       optimal <- coords(roc_obj, "best", ret = c("threshold", "youden", "sensitivity", "specificity"),
                         best.method = "youden", transpose = FALSE)
       paste0("Threshold: ", round(optimal$threshold, 3), "\n",
-        "Youden: ", round(optimal$youden, 3), "\n",
-        "Sensitivity: ", round(optimal$sensitivity, 3), "\n",
-        "Specificity: ", round(optimal$specificity, 3), "\n")
+             "Youden: ", round(optimal$youden, 3), "\n",
+             "Sensitivity: ", round(optimal$sensitivity, 3), "\n",
+             "Specificity: ", round(optimal$specificity, 3), "\n")
     }, error = function(e) {
       "Error calculating optimal threshold"
     })
